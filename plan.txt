@@ -1,3 +1,20 @@
-copy content
-wal file = file
-rename file ?
+is there a limit on how big the url can get ?
+
+Clean Up Mem
+
+implement the mem
+    either using a hashtable followed with a sroting when flushing
+    or by binary tree on eileen github
+
+Imlement DB with Wal, Mem and SST
+
+Read the eileen github, very interesting
+what the hell is the lsm tree
+
+Restart by using unmarked entries in wal
+
+Implement The flushin Mechanism
+    Parse from Mem to sst file
+    Parse from sst to Mem
+
+Compaction

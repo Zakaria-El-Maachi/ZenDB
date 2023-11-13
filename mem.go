@@ -5,7 +5,7 @@ import (
 )
 
 type MemTable struct {
-	table   map[string]string
+	table   TreeNode
 	size    int
 	deleted map[string]bool
 }

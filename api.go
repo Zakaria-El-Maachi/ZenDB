@@ -1,8 +1,10 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"net/http"
+	"net/url"
 )
 
 const (
@@ -22,38 +24,84 @@ func (s Server) fullAddress() string {
 	return s.addr + ":" + s.port
 }
 
+func writeResponse(response *http.ResponseWriter, a int, b string) {
+	(*response).WriteHeader(a)
+	(*response).Write([]byte(b))
+}
+
+func validate(queries *url.Values, pattern string) error {
+	switch pattern {
+	case Set:
+		if len(*queries) != 1 {
+			return errors.New("You should specify one key-value pair to set")
+		}
+		return nil
+	case Get:
+		if _, ok := (*queries)[Key]; !ok {
+			return errors.New("No specified element to get")
+		}
+		if len((*queries)[Key]) != 1 {
+			return errors.New("Too many keys to get, request cancelled")
+		}
+		return nil
+	case Del:
+		if _, ok := (*queries)[Key]; !ok {
+			return errors.New("No specified element to delete")
+		}
+		if len((*queries)[Key]) != 1 {
+			return errors.New("Too many keys to delete, request cancelled")
+		}
+		return nil
+	default:
+		return errors.New("Unrecognized pattern")
+	}
+}
+
 func (s *Server) handleSet(response http.ResponseWriter, request *http.Request) {
 	queries := request.URL.Query()
+	if err := validate(&queries, Set); err != nil {
+		writeResponse(&response, http.StatusBadRequest, err.Error())
+		return
+	}
 	for k, v := range queries {
-		if err := s.mem.Set(k, v[len(v)-1]); err != nil {
-			response.WriteHeader(http.StatusNotAcceptable)
-			response.Write([]byte(err.Error()))
+		if len(v) != 1 {
+			writeResponse(&response, http.StatusBadRequest, "You should specify one key-value pair to set")
+			return
+		}
+		if err := s.mem.Set(k, v[0]); err != nil {
+			writeResponse(&response, http.StatusBadRequest, err.Error())
 			return
 		}
 	}
-	response.WriteHeader(http.StatusOK)
+	writeResponse(&response, http.StatusOK, "The key value pair was set successfully")
 }
 
 func (s *Server) handleGet(response http.ResponseWriter, request *http.Request) {
 	queries := request.URL.Query()
-	if _, ok := queries[Key]; !ok {
-		response.WriteHeader(http.StatusBadRequest)
-		response.Write([]byte("No keys specified"))
+	if err := validate(&queries, Get); err != nil {
+		writeResponse(&response, http.StatusBadRequest, err.Error())
 		return
 	}
-	response.WriteHeader(http.StatusOK)
-	for _, k := range queries[Key] {
-		if v, err := s.mem.Get(k); err != nil {
-			response.Write([]byte(k + " : " + err.Error() + "\n"))
-		} else {
-			response.Write([]byte(k + " : " + v + "\n"))
-		}
+	k := queries[Key][0]
+	if v, err := s.mem.Get(k); err != nil {
+		writeResponse(&response, http.StatusBadRequest, k+" : "+err.Error())
+	} else {
+		writeResponse(&response, http.StatusOK, k+" : "+v)
 	}
 }
 
 func (s *Server) handleDel(response http.ResponseWriter, request *http.Request) {
-	response.WriteHeader(http.StatusOK)
-	response.Write([]byte("You are smart Zakaria"))
+	queries := request.URL.Query()
+	if err := validate(&queries, Del); err != nil {
+		writeResponse(&response, http.StatusBadRequest, err.Error())
+		return
+	}
+	k := queries[Key][0]
+	if v, err := s.mem.Del(k); err != nil {
+		writeResponse(&response, http.StatusBadRequest, k+" : "+err.Error())
+	} else {
+		writeResponse(&response, http.StatusOK, "Deleted Successfully : "+k+" : "+v)
+	}
 }
 
 func NewServer() Server {
