@@ -1,20 +1,15 @@
 is there a limit on how big the url can get ?
 
-Clean Up Mem
+Implement RB Afterwards
 
-implement the mem
-    either using a hashtable followed with a sroting when flushing
-    or by binary tree on eileen github
+Implement The SST Files
+    decodeHeader Errors
+    Parse from Mem to sst file (Mem Method Flush)
+    Implement Search
 
-Imlement DB with Wal, Mem and SST
-
-Read the eileen github, very interesting
-what the hell is the lsm tree
+Imlement LSMTree with Wal, Mem and SST Files
+Get Set and Del of Whole DB
 
 Restart by using unmarked entries in wal
-
-Implement The flushin Mechanism
-    Parse from Mem to sst file
-    Parse from sst to Mem
 
 Compaction

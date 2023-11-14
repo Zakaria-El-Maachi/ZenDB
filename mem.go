@@ -5,44 +5,42 @@ import (
 )
 
 type MemTable struct {
-	table   TreeNode
-	size    int
-	deleted map[string]bool
+	table *TreeNode
+	size  int
 }
 
 func (mem *MemTable) Set(key, value string) error {
-	mem.table[key] = value
+	mem.table.insert(Pair{key, value}, true)
 	mem.size += len(key) + len(value)
 	return nil
 }
 
 func (mem *MemTable) Get(key string) (string, error) {
-	if _, ok := mem.deleted[key]; ok {
-		return "", errors.New("No Such Key in the Database")
+	t := mem.table.search(key)
+	if t == nil {
+		return "", errors.New("Key probably in the Database")
 	}
-	if v, ok := mem.table[key]; ok {
-		return v, nil
+	if t.marker {
+		return t.elem.value, nil
 	}
-	return "", errors.New("Key probably in the Database")
+	return "", errors.New("No Such Key in the Database")
 }
 
 func (mem *MemTable) Del(key string) (string, error) {
-	value, err := mem.Get(key)
-	if err != nil {
-		return value, err
+	t := mem.table.search(key)
+	if t == nil {
+		return "", errors.New("Key probably in the Database")
 	}
-	delete(mem.table, key)
-	mem.deleted[key] = true
-	return value, nil
+	if t.marker {
+		t.marker = false
+		return t.elem.value, nil
+	}
+	return "", errors.New("No Such Key in the Database")
 }
 
 func NewMemTable() *MemTable {
-	table := make(map[string]string)
-	deleted := make(map[string]bool)
-	size := 0
 	return &MemTable{
-		table,
-		size,
-		deleted,
+		table: nil,
+		size:  0,
 	}
 }
