@@ -2,13 +2,12 @@ is there a limit on how big the url can get ?
 
 Implement RB Afterwards
 
-Implement The SST Files
-    decodeHeader Errors
-    Parse from Mem to sst file (Mem Method Flush)
-    Implement Search
+Flush Error handling
+sst.go Parse h.sum error handling
 
 Imlement LSMTree with Wal, Mem and SST Files
 Get Set and Del of Whole DB
+
 
 Restart by using unmarked entries in wal
 

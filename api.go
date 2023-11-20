@@ -17,7 +17,7 @@ const (
 type Server struct {
 	addr string
 	port string
-	mem  *MemTable
+	lstm *Lstm
 }
 
 func (s Server) fullAddress() string {
@@ -68,7 +68,7 @@ func (s *Server) handleSet(response http.ResponseWriter, request *http.Request) 
 			writeResponse(&response, http.StatusBadRequest, "You should specify one key-value pair to set")
 			return
 		}
-		if err := s.mem.Set(k, v[0]); err != nil {
+		if err := s.lstm.Set(k, v[0]); err != nil {
 			writeResponse(&response, http.StatusBadRequest, err.Error())
 			return
 		}
@@ -83,7 +83,7 @@ func (s *Server) handleGet(response http.ResponseWriter, request *http.Request) 
 		return
 	}
 	k := queries[Key][0]
-	if v, err := s.mem.Get(k); err != nil {
+	if v, err := s.lstm.Get(k); err != nil {
 		writeResponse(&response, http.StatusBadRequest, k+" : "+err.Error())
 	} else {
 		writeResponse(&response, http.StatusOK, k+" : "+v)
@@ -97,7 +97,7 @@ func (s *Server) handleDel(response http.ResponseWriter, request *http.Request) 
 		return
 	}
 	k := queries[Key][0]
-	if v, err := s.mem.Del(k); err != nil {
+	if v, err := s.lstm.Del(k); err != nil {
 		writeResponse(&response, http.StatusBadRequest, k+" : "+err.Error())
 	} else {
 		writeResponse(&response, http.StatusOK, "Deleted Successfully : "+k+" : "+v)
@@ -108,7 +108,7 @@ func NewServer() Server {
 	s := Server{
 		addr: "",
 		port: "8081",
-		mem:  NewMemTable(),
+		lstm: NewLstm(),
 	}
 	http.HandleFunc(Set, s.handleSet)
 	http.HandleFunc(Get, s.handleGet)
