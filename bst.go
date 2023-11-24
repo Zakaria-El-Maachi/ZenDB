@@ -61,7 +61,7 @@ func (t *TreeNode) search(key string) *TreeNode {
 	if t.elem.key == key {
 		return t
 	}
-	if t.elem.key < key {
+	if t.elem.key > key {
 		return t.left.search(key)
 	} else {
 		return t.right.search(key)

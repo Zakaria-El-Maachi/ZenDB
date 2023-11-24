@@ -42,7 +42,7 @@ func (lstm *Lstm) Get(key string) (string, error) {
 			}
 			v, err := search(key, file)
 			if err != nil {
-				if err.Error() != "File not recognized" || err.Error() != "File Not Encoded Properly" || err.Error() != "The File is Corrupt" {
+				if err.Error() == "File not recognized" || err.Error() == "File Not Encoded Properly" || err.Error() == "The File is Corrupt" {
 					log.Println(err)
 				}
 				continue
