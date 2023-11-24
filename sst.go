@@ -11,27 +11,22 @@ import (
 const MAGIC = "zeni"
 
 func decodeBytes(file io.ReadWriteSeeker) (string, error) {
-	p := make([]byte, 2)
-	n, err := file.Read(p)
-	if err != nil {
-		return "", err
-	}
-	if n != 2 {
-		return "", errors.New("File Not Encoded Properly")
-	}
-	length := binary.LittleEndian.Uint16(p)
-	p = make([]byte, length)
-	n, err = file.Read(p)
+
+	var length uint16
+	err := binary.Read(file, binary.LittleEndian, &length)
 	if err != nil {
 		return "", errors.New("File Not Encoded Properly")
 	}
-	if uint16(n) != length {
+
+	data := make([]byte, length)
+	_, err = io.ReadFull(file, data)
+	if err != nil {
 		return "", errors.New("File Not Encoded Properly")
 	}
-	return string(p), nil
+	return string(data), nil
 }
 
-func decodeHeader(file io.ReadWriteSeeker) (string, uint32, string, uint32, error) {
+func decodeHeader(file io.ReadWriteSeeker) (string, uint32, string, uint16, error) {
 	file.Seek(0, io.SeekStart)
 	p2 := make([]byte, 2)
 	p4 := make([]byte, 4)
@@ -47,7 +42,7 @@ func decodeHeader(file io.ReadWriteSeeker) (string, uint32, string, uint32, erro
 		return "", 0, "", 0, errors.New("File Not Encoded Properly")
 	}
 	maxOffset := binary.LittleEndian.Uint32(p4)
-	if _, err := file.Seek(int64(maxOffset), io.SeekStart); err != nil {
+	if _, err := file.Seek(int64(maxOffset+1), io.SeekStart); err != nil {
 		return "", 0, "", 0, errors.New("File Not Encoded Properly")
 	}
 	maxKey, err := decodeBytes(file)
@@ -56,7 +51,7 @@ func decodeHeader(file io.ReadWriteSeeker) (string, uint32, string, uint32, erro
 	}
 	file.Seek(12, io.SeekStart)
 	file.Read(p2)
-	return magic, entryCount, maxKey, binary.LittleEndian.Uint32(p2), nil
+	return magic, entryCount, maxKey, binary.LittleEndian.Uint16(p2), nil
 }
 
 func parse(file io.ReadWriteSeeker, entrycount int) (*MemTable, error) {
@@ -65,7 +60,7 @@ func parse(file io.ReadWriteSeeker, entrycount int) (*MemTable, error) {
 	var key, value string
 	var err error
 	h := sha256.New()
-	if _, err = file.Seek(0, 14); err != nil {
+	if _, err = file.Seek(14, io.SeekStart); err != nil {
 		return nil, errors.New("File Not Encoded Properly")
 	}
 	for i := 0; i < entrycount; i++ {

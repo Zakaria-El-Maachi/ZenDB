@@ -1,14 +1,14 @@
-is there a limit on how big the url can get ?
-
-Implement RB Afterwards
-
-Flush Error handling
-sst.go Parse h.sum error handling
-
-Imlement LSMTree with Wal, Mem and SST Files
-Get Set and Del of Whole DB
+Does not get the key in sst file -> error : File Not Encoded Properly
 
 
-Restart by using unmarked entries in wal
-
+JSON
+Rb Tree
+Wal Cleaning
 Compaction
+Go routine handling
+
+
+Error handling
+    Flush Error handling
+    sst.go Parse h.sum error handling
+Refactoring

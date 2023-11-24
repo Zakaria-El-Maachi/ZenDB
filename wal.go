@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"io"
 	"os"
 	"strings"
@@ -11,6 +12,8 @@ const BufferSize = 2048
 type Wal struct {
 	watermark int64
 	file      *os.File
+	water     *os.File
+	meta      *os.File
 }
 
 // Writes to the Wal in Append Mode and Flushes immediately
@@ -25,11 +28,11 @@ func (w *Wal) Write(op []byte) error {
 }
 
 // Cleans the WAL from the watermarked entries while updating the watermark
-func (w *Wal) Clean() (int64, error) {
+func (w *Wal) Clean() error {
 	temp := strings.Split(w.file.Name(), ".")
 	file, err := os.Create(temp[0] + "2." + temp[1])
 	if err != nil {
-		return 0, err
+		return err
 	}
 	defer func() {
 		file.Close()
@@ -43,16 +46,20 @@ func (w *Wal) Clean() (int64, error) {
 			if err == io.EOF {
 				break
 			}
-			return 0, err
+			return err
 		}
 		if n, err = file.Write(b[:n]); err != nil {
-			return 0, err
+			return err
 		}
 	}
-	if sum, err := io.Copy(w.file, file); err != nil {
-		return sum, err
+	if _, err := io.Copy(w.file, file); err != nil {
+		return err
 	} else {
-		w.watermark = sum
-		return sum, err
+		w.watermark = 0
+		buffer4 := make([]byte, 4)
+		binary.LittleEndian.PutUint64(buffer4, 0)
+		w.water.Seek(0, io.SeekStart)
+		w.water.Write(buffer4)
+		return nil
 	}
 }

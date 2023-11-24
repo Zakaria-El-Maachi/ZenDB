@@ -1,0 +1,25 @@
+Setting 
+
+curl "http://localhost:8081/set?zakaria=elmaachi"
+curl "http://localhost:8081/set?imane=rahali"
+curl "http://localhost:8081/set?key1=value1"
+curl "http://localhost:8081/set?cool=best"
+curl "http://localhost:8081/set?soul=amari"
+curl "http://localhost:8081/set?key1=value2"
+curl "http://localhost:8081/set?soul=elamari"
+
+Getting
+
+curl "http://localhost:8081/get?key=zakaria"
+curl "http://localhost:8081/get?key=imane"
+curl "http://localhost:8081/get?key=key1"
+curl "http://localhost:8081/get?key=cool"
+curl "http://localhost:8081/get?key=soul"
+
+Deleting
+
+curl "http://localhost:8081/del?key=zakaria"
+curl "http://localhost:8081/del?key=key1"
+curl "http://localhost:8081/del?key=imane"
+curl "http://localhost:8081/del?key=cool"
+curl "http://localhost:8081/del?key=soul"

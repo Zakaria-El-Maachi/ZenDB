@@ -35,19 +35,22 @@ func BuildTree(list []Pair, c bool) *TreeNode {
 	return root
 }
 
-func (t *TreeNode) insert(p Pair) {
-	if t == nil {
-		t.elem = p
-		t.left = nil
-		t.right = nil
-		t.size = 1
-	}
-	if t.elem.key == p.key {
-		t.elem = p
-	} else if t.elem.key < p.key {
-		t.left.insert(p)
+func insert(t **TreeNode, p Pair) {
+	if *t == nil {
+		*t = &TreeNode{
+			elem:  p,
+			left:  nil,
+			right: nil,
+			size:  1,
+		}
+	} else if (*t).elem.key == p.key {
+		(*t).elem = p
+	} else if (*t).elem.key > p.key {
+		(*t).size++
+		insert(&((*t).left), p)
 	} else {
-		t.right.insert(p)
+		(*t).size++
+		insert(&((*t).right), p)
 	}
 }
 
@@ -76,9 +79,16 @@ func (t *TreeNode) getMaxOffset(p []Pair) int {
 	if len(p) == 0 {
 		return 0
 	}
-	index := 0
-	for i := 0; i < len(p)-1; i++ {
-		index += len(p[i].key) + len(p[i].value)
+	if len(p) == 1 {
+		return 14
 	}
-	return index + (len(p)-1)*4
+	index := 14
+	for i := 0; i < len(p)-1; i++ {
+		if p[i].marker {
+			index += len(p[i].key) + 2 + len(p[i].value)
+		} else {
+			index += len(p[i].key)
+		}
+	}
+	return index + 3*(len(p)-1)
 }

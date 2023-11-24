@@ -105,10 +105,14 @@ func (s *Server) handleDel(response http.ResponseWriter, request *http.Request) 
 }
 
 func NewServer() Server {
+	lstm, err := LstmDB()
+	if err != nil {
+		log.Fatal(err)
+	}
 	s := Server{
 		addr: "",
 		port: "8081",
-		lstm: NewLstm(),
+		lstm: lstm,
 	}
 	http.HandleFunc(Set, s.handleSet)
 	http.HandleFunc(Get, s.handleGet)
