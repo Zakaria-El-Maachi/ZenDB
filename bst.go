@@ -35,7 +35,7 @@ func BuildTree(list []Pair, c bool) *TreeNode {
 	return root
 }
 
-func insert(t **TreeNode, p Pair) {
+func insert(t **TreeNode, p Pair) int {
 	if *t == nil {
 		*t = &TreeNode{
 			elem:  p,
@@ -43,14 +43,17 @@ func insert(t **TreeNode, p Pair) {
 			right: nil,
 			size:  1,
 		}
+		return len(p.key) + len(p.value)
 	} else if (*t).elem.key == p.key {
+		l := len(p.value) - len((*t).elem.value)
 		(*t).elem = p
+		return l
 	} else if (*t).elem.key > p.key {
 		(*t).size++
-		insert(&((*t).left), p)
+		return insert(&((*t).left), p)
 	} else {
 		(*t).size++
-		insert(&((*t).right), p)
+		return insert(&((*t).right), p)
 	}
 }
 

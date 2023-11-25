@@ -13,8 +13,7 @@ type MemTable struct {
 }
 
 func (mem *MemTable) Set(key, value string) error {
-	insert(&mem.table, Pair{true, key, value})
-	mem.size += len(key) + len(value)
+	mem.size += insert(&mem.table, Pair{true, key, value})
 	return nil
 }
 
@@ -31,8 +30,7 @@ func (mem *MemTable) Get(key string) (string, error) {
 
 func (mem *MemTable) Del(key string) error {
 	p := Pair{marker: false, key: key, value: ""}
-	insert(&mem.table, p)
-	mem.size += len(key)
+	mem.size += insert(&mem.table, p)
 	return nil
 }
 
