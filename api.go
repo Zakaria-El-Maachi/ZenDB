@@ -11,10 +11,16 @@ import (
 )
 
 const (
-	Set = "/set"
-	Get = "/get"
-	Del = "/del"
-	Key = "key"
+	SetPath = "/set"
+	GetPath = "/get"
+	DelPath = "/del"
+	Key     = "key"
+)
+
+const (
+	StatusOK               = http.StatusOK
+	StatusMethodNotAllowed = http.StatusMethodNotAllowed
+	StatusBadRequest       = http.StatusBadRequest
 )
 
 type Server struct {
@@ -27,27 +33,19 @@ func (s Server) fullAddress() string {
 	return s.addr + ":" + s.port
 }
 
-func writeResponse(response *http.ResponseWriter, a int, b string) {
-	(*response).WriteHeader(a)
-	(*response).Write([]byte(b))
+func writeResponse(response *http.ResponseWriter, status int, message string) {
+	(*response).WriteHeader(status)
+	(*response).Write([]byte(message))
 }
 
 func validate(queries *url.Values, pattern string) error {
 	switch pattern {
-	case Get:
+	case GetPath, DelPath:
 		if _, ok := (*queries)[Key]; !ok {
-			return errors.New("No specified element to get")
+			return errors.New("No specified element to " + pattern[1:])
 		}
 		if len((*queries)[Key]) != 1 {
-			return errors.New("Too many keys to get, request cancelled")
-		}
-		return nil
-	case Del:
-		if _, ok := (*queries)[Key]; !ok {
-			return errors.New("No specified element to delete")
-		}
-		if len((*queries)[Key]) != 1 {
-			return errors.New("Too many keys to delete, request cancelled")
+			return errors.New("Too many keys to " + pattern[1:] + ", request cancelled")
 		}
 		return nil
 	default:
@@ -83,54 +81,54 @@ func validateJSON(data map[string]string) error {
 
 func (s *Server) handleSet(response http.ResponseWriter, request *http.Request) {
 	if request.Method != http.MethodPost {
-		writeResponse(&response, http.StatusMethodNotAllowed, "Method not allowed. Only POST requests are allowed.")
+		writeResponse(&response, StatusMethodNotAllowed, "Method not allowed. Only POST requests are allowed.")
 		return
 	}
 	var requestBody map[string]string
 	if err := json.NewDecoder(request.Body).Decode(&requestBody); err != nil {
-		writeResponse(&response, http.StatusBadRequest, "Error decoding JSON data: "+err.Error())
+		writeResponse(&response, StatusBadRequest, "Error decoding JSON data: "+err.Error())
 		return
 	}
 	if err := validateJSON(requestBody); err != nil {
-		writeResponse(&response, http.StatusBadRequest, err.Error())
+		writeResponse(&response, StatusBadRequest, err.Error())
 		return
 	}
 
 	for k, v := range requestBody {
 		err := s.lstm.Set(k, v)
 		if err != nil {
-			writeResponse(&response, http.StatusBadRequest, err.Error())
+			writeResponse(&response, StatusBadRequest, err.Error())
 		}
 		break
 	}
-	writeResponse(&response, http.StatusOK, "The key-value pair was set successfully")
+	writeResponse(&response, StatusOK, "The key-value pair was set successfully")
 }
 
 func (s *Server) handleGet(response http.ResponseWriter, request *http.Request) {
 	queries := request.URL.Query()
-	if err := validate(&queries, Get); err != nil {
-		writeResponse(&response, http.StatusBadRequest, err.Error())
+	if err := validate(&queries, GetPath); err != nil {
+		writeResponse(&response, StatusBadRequest, err.Error())
 		return
 	}
 	k := queries[Key][0]
 	if v, err := s.lstm.Get(k); err != nil {
-		writeResponse(&response, http.StatusBadRequest, k+" : "+err.Error())
+		writeResponse(&response, StatusBadRequest, k+" : "+err.Error())
 	} else {
-		writeResponse(&response, http.StatusOK, k+" : "+v)
+		writeResponse(&response, StatusOK, k+" : "+v)
 	}
 }
 
 func (s *Server) handleDel(response http.ResponseWriter, request *http.Request) {
 	queries := request.URL.Query()
-	if err := validate(&queries, Del); err != nil {
-		writeResponse(&response, http.StatusBadRequest, err.Error())
+	if err := validate(&queries, DelPath); err != nil {
+		writeResponse(&response, StatusBadRequest, err.Error())
 		return
 	}
 	k := queries[Key][0]
 	if v, err := s.lstm.Del(k); err != nil {
-		writeResponse(&response, http.StatusBadRequest, k+" : "+err.Error())
+		writeResponse(&response, StatusBadRequest, k+" : "+err.Error())
 	} else {
-		writeResponse(&response, http.StatusOK, "Deleted Successfully : "+k+" : "+v)
+		writeResponse(&response, StatusOK, "Deleted Successfully : "+k+" : "+v)
 	}
 }
 
@@ -144,9 +142,9 @@ func NewServer() Server {
 		port: "8081",
 		lstm: lstm,
 	}
-	http.HandleFunc(Set, s.handleSet)
-	http.HandleFunc(Get, s.handleGet)
-	http.HandleFunc(Del, s.handleDel)
+	http.HandleFunc(SetPath, s.handleSet)
+	http.HandleFunc(GetPath, s.handleGet)
+	http.HandleFunc(DelPath, s.handleDel)
 	log.Fatal(http.ListenAndServe(s.fullAddress(), nil))
 	return s
 }

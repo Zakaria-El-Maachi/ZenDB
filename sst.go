@@ -4,24 +4,22 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
-	"errors"
 	"io"
 )
 
 const MAGIC = "zeni"
 
 func decodeBytes(file io.ReadWriteSeeker) (string, error) {
-
 	var length uint16
 	err := binary.Read(file, binary.LittleEndian, &length)
 	if err != nil {
-		return "", errors.New("File Not Encoded Properly")
+		return "", ErrFileNotEncodedProperly
 	}
 
 	data := make([]byte, length)
 	_, err = io.ReadFull(file, data)
 	if err != nil {
-		return "", errors.New("File Not Encoded Properly")
+		return "", ErrFileNotEncodedProperly
 	}
 	return string(data), nil
 }
@@ -31,19 +29,19 @@ func decodeHeader(file io.ReadWriteSeeker) (string, uint32, string, uint16, erro
 	p2 := make([]byte, 2)
 	p4 := make([]byte, 4)
 	if n, err := file.Read(p4); n != 4 || err != nil {
-		return "", 0, "", 0, errors.New("File Not Encoded Properly")
+		return "", 0, "", 0, ErrFileNotEncodedProperly
 	}
 	magic := string(p4)
 	if n, err := file.Read(p4); n != 4 || err != nil {
-		return "", 0, "", 0, errors.New("File Not Encoded Properly")
+		return "", 0, "", 0, ErrFileNotEncodedProperly
 	}
 	entryCount := binary.LittleEndian.Uint32(p4)
 	if n, err := file.Read(p4); n != 4 || err != nil {
-		return "", 0, "", 0, errors.New("File Not Encoded Properly")
+		return "", 0, "", 0, ErrFileNotEncodedProperly
 	}
 	maxOffset := binary.LittleEndian.Uint32(p4)
 	if _, err := file.Seek(int64(maxOffset+1), io.SeekStart); err != nil {
-		return "", 0, "", 0, errors.New("File Not Encoded Properly")
+		return "", 0, "", 0, ErrFileNotEncodedProperly
 	}
 	maxKey, err := decodeBytes(file)
 	if err != nil {
@@ -61,11 +59,11 @@ func parse(file io.ReadWriteSeeker, entrycount int) (*MemTable, error) {
 	var err error
 	h := sha256.New()
 	if _, err = file.Seek(14, io.SeekStart); err != nil {
-		return nil, errors.New("File Not Encoded Properly")
+		return nil, ErrFileNotEncodedProperly
 	}
 	for i := 0; i < entrycount; i++ {
 		if _, err = file.Read(mark); err != nil {
-			return nil, errors.New("File Not Encoded Properly")
+			return nil, ErrFileNotEncodedProperly
 		}
 		key, err = decodeBytes(file)
 		if err != nil {
@@ -82,18 +80,18 @@ func parse(file io.ReadWriteSeeker, entrycount int) (*MemTable, error) {
 			mem.Del(key)
 			h.Write([]byte(key))
 		} else {
-			return nil, errors.New("File Not Encoded Properly")
+			return nil, ErrFileNotEncodedProperly
 		}
 
 	}
 
 	p := make([]byte, 32)
 	if n, err := file.Read(p); n < 32 || err != nil {
-		return nil, errors.New("File Not Encoded Properly")
+		return nil, ErrFileNotEncodedProperly
 	}
 
 	if bytes.Compare(h.Sum(nil), p) != 0 {
-		return nil, errors.New("The File is Corrupt")
+		return nil, ErrCorruptFile
 	}
 	return mem, nil
 }
@@ -104,10 +102,10 @@ func search(key string, file io.ReadWriteSeeker) (string, error) {
 		return "", err
 	}
 	if magic != MAGIC {
-		return "", errors.New("File not recognized")
+		return "", ErrFileNotRecognized
 	}
 	if key > maxKey {
-		return "", errors.New("Key cannot be in current file")
+		return "", ErrKeyCannotBeInFile
 	}
 	mem, err := parse(file, int(entryCount))
 	if err != nil {

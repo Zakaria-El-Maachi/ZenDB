@@ -1,15 +1,13 @@
-Sync Files
-Go routine handling
+Test Files
 
+Sync Files
 Wal Cleaning
 Compaction
 
-Test Files
+Go routine handling
 
-Error handling
-    Flush Error handling
-    sst.go Parse h.sum error handling
-Refactoring
+Error handling (Very Few but there are some errors here and there that are not handled)
+Refactoring Some things could be refactored into functions for sure
 
 
 Bloom Filter

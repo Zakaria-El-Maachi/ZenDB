@@ -1,5 +1,6 @@
 package main
 
+// Color represents the color of a node in a Red-Black Tree.
 type Color bool
 
 const (
@@ -7,24 +8,28 @@ const (
 	Black Color = false
 )
 
+// Pair represents a key-value pair in the tree.
 type Pair struct {
-	marker bool //Deleted or Just Set
-	key    string
-	value  string
+	marker bool   // Deleted or Just Set
+	key    string // Key of the pair
+	value  string // Value associated with the key
 }
 
+// TreeNode represents a node in a Red-Black Tree.
 type TreeNode struct {
-	elem  Pair  // Key Value
-	color Color //RB Tree Colors
+	elem  Pair  // Key-Value Pair
+	color Color // RB Tree Colors
 	left  *TreeNode
 	right *TreeNode
-	size  int //Size of the SubTree
+	size  int // Size of the SubTree
 }
 
+// NewTree creates a new Red-Black Tree from a list of pairs.
 func NewTree(list []Pair) *TreeNode {
-	return BuildTree(list, false)
+	return BuildTree(list, Black)
 }
 
+// BuildTree builds a Red-Black Tree from a list of pairs with a given color.
 func BuildTree(list []Pair, c Color) *TreeNode {
 	s := len(list)
 	if s == 0 {
@@ -42,13 +47,15 @@ func BuildTree(list []Pair, c Color) *TreeNode {
 	return root
 }
 
-func insert(t **TreeNode, p Pair) int {
+// Insert inserts a new pair into the Red-Black Tree.
+func Insert(t **TreeNode, p Pair) int {
 	var addedLength int
 	*t, addedLength = insertRB(*t, p)
 	(*t).color = Black // Ensure the root is always black
 	return addedLength
 }
 
+// insertRB inserts a new pair into the Red-Black Tree and returns the modified tree and the added length.
 func insertRB(root *TreeNode, p Pair) (*TreeNode, int) {
 	if root == nil {
 		return &TreeNode{
@@ -87,6 +94,7 @@ func insertRB(root *TreeNode, p Pair) (*TreeNode, int) {
 	return root, addedLength
 }
 
+// isRed checks if a node is red.
 func isRed(node *TreeNode) bool {
 	if node == nil {
 		return false
@@ -94,6 +102,7 @@ func isRed(node *TreeNode) bool {
 	return node.color == Red
 }
 
+// rotateLeft performs a left rotation on the Red-Black Tree.
 func rotateLeft(h *TreeNode) *TreeNode {
 	x := h.right
 	h.right = x.left
@@ -105,6 +114,7 @@ func rotateLeft(h *TreeNode) *TreeNode {
 	return x
 }
 
+// rotateRight performs a right rotation on the Red-Black Tree.
 func rotateRight(h *TreeNode) *TreeNode {
 	x := h.left
 	h.left = x.right
@@ -116,12 +126,14 @@ func rotateRight(h *TreeNode) *TreeNode {
 	return x
 }
 
+// flipColors flips the colors of nodes in the Red-Black Tree.
 func flipColors(h *TreeNode) {
 	h.color = Red
 	h.left.color = Black
 	h.right.color = Black
 }
 
+// size returns the size of the subtree rooted at the given node.
 func size(node *TreeNode) int {
 	if node == nil {
 		return 0
@@ -129,7 +141,8 @@ func size(node *TreeNode) int {
 	return node.size
 }
 
-func (t *TreeNode) search(key string) *TreeNode {
+// Search searches for a key in the Red-Black Tree.
+func (t *TreeNode) Search(key string) *TreeNode {
 	if t == nil {
 		return nil
 	}
@@ -137,20 +150,22 @@ func (t *TreeNode) search(key string) *TreeNode {
 		return t
 	}
 	if t.elem.key > key {
-		return t.left.search(key)
+		return t.left.Search(key)
 	} else {
-		return t.right.search(key)
+		return t.right.Search(key)
 	}
 }
 
-func (t *TreeNode) traverse() []Pair {
+// Traverse performs an in-order traversal of the Red-Black Tree and returns a list of pairs.
+func (t *TreeNode) Traverse() []Pair {
 	if t == nil {
 		return make([]Pair, 0)
 	}
-	return append(append(t.left.traverse(), t.elem), t.right.traverse()...)
+	return append(append(t.left.Traverse(), t.elem), t.right.Traverse()...)
 }
 
-func (t *TreeNode) getMaxOffset(p []Pair) int {
+// GetMaxOffset calculates the maximum offset in the list of pairs.
+func (t *TreeNode) GetMaxOffset(p []Pair) int {
 	if len(p) == 0 {
 		return 0
 	}
