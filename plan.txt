@@ -11,3 +11,7 @@ Error handling
     Flush Error handling
     sst.go Parse h.sum error handling
 Refactoring
+
+
+Bloom Filter
+Data Compression

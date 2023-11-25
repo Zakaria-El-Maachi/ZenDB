@@ -6,7 +6,7 @@ curl -X POST -H "Content-Type: application/json" -d '{"injustice":"destroy"}' "h
 curl -X POST -H "Content-Type: application/json" -d '{"soul":"elamari", "cool":"best"}' "http://localhost:8081/set"
 curl -X POST -H "Content-Type: application/json" -d '{"key1":"value1", "soul":"elamari"}' "http://localhost:8081/set"
 
-curl -X POST -H "Content-Type: application/json" -d '{"um6p":"cs", "age":25, "city":"marrakech"}' "http://localhost:8081/set"
+curl -X POST -H "Content-Type: application/json" -d '{"um6p":"cs", "age":"25", "city":"marrakech"}' "http://localhost:8081/set"
 curl -X POST -H "Content-Type: application/json" -d '{"why":"because", "status":"active", "priority": "high"}' "http://localhost:8081/set"
 
 curl -X POST -H "Content-Type: application/json" -d '{"life":"hard", "color":"blue", "size":"large", "weight":"heavy"}' "http://localhost:8081/set"

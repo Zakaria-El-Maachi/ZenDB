@@ -34,11 +34,6 @@ func writeResponse(response *http.ResponseWriter, a int, b string) {
 
 func validate(queries *url.Values, pattern string) error {
 	switch pattern {
-	case Set:
-		if len(*queries) != 1 {
-			return errors.New("You should specify one key-value pair to set")
-		}
-		return nil
 	case Get:
 		if _, ok := (*queries)[Key]; !ok {
 			return errors.New("No specified element to get")
@@ -70,6 +65,9 @@ func isASCII(s string) bool {
 }
 
 func validateJSON(data map[string]string) error {
+	if len(data) != 1 {
+		return errors.New("You should specify one key-value pair to set")
+	}
 	for key, value := range data {
 		if key == "" || !isASCII(key) {
 			return fmt.Errorf("Invalid key: %s", key)
@@ -82,25 +80,6 @@ func validateJSON(data map[string]string) error {
 
 	return nil
 }
-
-// func (s *Server) handleSet(response http.ResponseWriter, request *http.Request) {
-// 	queries := request.URL.Query()
-// 	if err := validate(&queries, Set); err != nil {
-// 		writeResponse(&response, http.StatusBadRequest, err.Error())
-// 		return
-// 	}
-// 	for k, v := range queries {
-// 		if len(v) != 1 {
-// 			writeResponse(&response, http.StatusBadRequest, "You should specify one key-value pair to set")
-// 			return
-// 		}
-// 		if err := s.lstm.Set(k, v[0]); err != nil {
-// 			writeResponse(&response, http.StatusBadRequest, err.Error())
-// 			return
-// 		}
-// 	}
-// 	writeResponse(&response, http.StatusOK, "The key value pair was set successfully")
-// }
 
 func (s *Server) handleSet(response http.ResponseWriter, request *http.Request) {
 	if request.Method != http.MethodPost {
@@ -118,10 +97,11 @@ func (s *Server) handleSet(response http.ResponseWriter, request *http.Request) 
 	}
 
 	for k, v := range requestBody {
-		if err := s.lstm.Set(k, v); err != nil {
+		err := s.lstm.Set(k, v)
+		if err != nil {
 			writeResponse(&response, http.StatusBadRequest, err.Error())
-			return
 		}
+		break
 	}
 	writeResponse(&response, http.StatusOK, "The key-value pair was set successfully")
 }
