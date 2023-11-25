@@ -1,10 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
+	"unicode"
 )
 
 const (
@@ -57,23 +60,70 @@ func validate(queries *url.Values, pattern string) error {
 	}
 }
 
+func isASCII(s string) bool {
+	for _, r := range s {
+		if r > unicode.MaxASCII || !unicode.IsPrint(r) {
+			return false
+		}
+	}
+	return true
+}
+
+func validateJSON(data map[string]string) error {
+	for key, value := range data {
+		if key == "" || !isASCII(key) {
+			return fmt.Errorf("Invalid key: %s", key)
+		}
+
+		if value == "" || !isASCII(value) {
+			return fmt.Errorf("Invalid value for key %s: %s", key, value)
+		}
+	}
+
+	return nil
+}
+
+// func (s *Server) handleSet(response http.ResponseWriter, request *http.Request) {
+// 	queries := request.URL.Query()
+// 	if err := validate(&queries, Set); err != nil {
+// 		writeResponse(&response, http.StatusBadRequest, err.Error())
+// 		return
+// 	}
+// 	for k, v := range queries {
+// 		if len(v) != 1 {
+// 			writeResponse(&response, http.StatusBadRequest, "You should specify one key-value pair to set")
+// 			return
+// 		}
+// 		if err := s.lstm.Set(k, v[0]); err != nil {
+// 			writeResponse(&response, http.StatusBadRequest, err.Error())
+// 			return
+// 		}
+// 	}
+// 	writeResponse(&response, http.StatusOK, "The key value pair was set successfully")
+// }
+
 func (s *Server) handleSet(response http.ResponseWriter, request *http.Request) {
-	queries := request.URL.Query()
-	if err := validate(&queries, Set); err != nil {
+	if request.Method != http.MethodPost {
+		writeResponse(&response, http.StatusMethodNotAllowed, "Method not allowed. Only POST requests are allowed.")
+		return
+	}
+	var requestBody map[string]string
+	if err := json.NewDecoder(request.Body).Decode(&requestBody); err != nil {
+		writeResponse(&response, http.StatusBadRequest, "Error decoding JSON data: "+err.Error())
+		return
+	}
+	if err := validateJSON(requestBody); err != nil {
 		writeResponse(&response, http.StatusBadRequest, err.Error())
 		return
 	}
-	for k, v := range queries {
-		if len(v) != 1 {
-			writeResponse(&response, http.StatusBadRequest, "You should specify one key-value pair to set")
-			return
-		}
-		if err := s.lstm.Set(k, v[0]); err != nil {
+
+	for k, v := range requestBody {
+		if err := s.lstm.Set(k, v); err != nil {
 			writeResponse(&response, http.StatusBadRequest, err.Error())
 			return
 		}
 	}
-	writeResponse(&response, http.StatusOK, "The key value pair was set successfully")
+	writeResponse(&response, http.StatusOK, "The key-value pair was set successfully")
 }
 
 func (s *Server) handleGet(response http.ResponseWriter, request *http.Request) {

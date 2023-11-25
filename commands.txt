@@ -1,12 +1,17 @@
 Setting 
 
-curl "http://localhost:8081/set?zakaria=elmaachi"
-curl "http://localhost:8081/set?injustice=destroy"
-curl "http://localhost:8081/set?key1=value1"
-curl "http://localhost:8081/set?cool=best"
-curl "http://localhost:8081/set?soul=amari"
-curl "http://localhost:8081/set?key1=value2"
-curl "http://localhost:8081/set?soul=elamari"
+curl -X POST -H "Content-Type: application/json" -d '{"zakaria":"elmaachi"}' "http://localhost:8081/set"
+curl -X POST -H "Content-Type: application/json" -d '{"injustice":"destroy"}' "http://localhost:8081/set"
+
+curl -X POST -H "Content-Type: application/json" -d '{"soul":"elamari", "cool":"best"}' "http://localhost:8081/set"
+curl -X POST -H "Content-Type: application/json" -d '{"key1":"value1", "soul":"elamari"}' "http://localhost:8081/set"
+
+curl -X POST -H "Content-Type: application/json" -d '{"um6p":"cs", "age":25, "city":"marrakech"}' "http://localhost:8081/set"
+curl -X POST -H "Content-Type: application/json" -d '{"why":"because", "status":"active", "priority": "high"}' "http://localhost:8081/set"
+
+curl -X POST -H "Content-Type: application/json" -d '{"life":"hard", "color":"blue", "size":"large", "weight":"heavy"}' "http://localhost:8081/set"
+curl -X POST -H "Content-Type: application/json" -d '{"siblings":"3", "temperature": "cool", "time":"morning", "day":"Monday"}' "http://localhost:8081/set"
+
 
 Getting
 
