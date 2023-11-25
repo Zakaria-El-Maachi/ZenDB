@@ -1,12 +1,13 @@
-Does not get the key in sst file -> error : File Not Encoded Properly
-
-
+When Setting and Deleting an existing value in Mem, the size addition is counted twice
+Sync Files
 JSON
 Rb Tree
+
+
 Wal Cleaning
 Compaction
 Go routine handling
-
+Test Files
 
 Error handling
     Flush Error handling

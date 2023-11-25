@@ -29,18 +29,11 @@ func (mem *MemTable) Get(key string) (string, error) {
 	return "", errors.New("No Such Key in the Database")
 }
 
-func (mem *MemTable) Del(key string) (string, error) {
-	t := mem.table.search(key)
-	if t == nil {
-		p := Pair{marker: false, key: key, value: ""}
-		insert(&mem.table, p)
-		mem.size += len(key)
-	}
-	if t.elem.marker {
-		t.elem.marker = false
-		return t.elem.value, nil
-	}
-	return "", errors.New("No Such Key in the Database")
+func (mem *MemTable) Del(key string) error {
+	p := Pair{marker: false, key: key, value: ""}
+	insert(&mem.table, p)
+	mem.size += len(key)
+	return nil
 }
 
 func (mem *MemTable) Flush(fileName string) error {
@@ -77,6 +70,7 @@ func (mem *MemTable) Flush(fileName string) error {
 			binary.LittleEndian.PutUint16(buffer2, uint16(len(p.key)))
 			file.Write(buffer2)
 			file.Write([]byte(p.key))
+			h.Write([]byte(p.key))
 		}
 	}
 	file.Write(h.Sum(nil))

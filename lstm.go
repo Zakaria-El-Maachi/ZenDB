@@ -39,11 +39,15 @@ func (lstm *Lstm) Get(key string) (string, error) {
 			file, err := os.Open(PATH1 + fmt.Sprint(lstm.sstFiles[i]) + PATH2)
 			if err != nil {
 				log.Println(err)
+				continue
 			}
 			v, err := search(key, file)
 			if err != nil {
 				if err.Error() == "File not recognized" || err.Error() == "File Not Encoded Properly" || err.Error() == "The File is Corrupt" {
 					log.Println(err)
+				}
+				if err.Error() == "No Such Key in the Database" {
+					break
 				}
 				continue
 			}
@@ -56,12 +60,18 @@ func (lstm *Lstm) Get(key string) (string, error) {
 }
 
 func (lstm *Lstm) Del(key string) (string, error) {
-	buffer2 := make([]byte, 2)
-	lstm.wal.file.Write([]byte("d"))
-	binary.LittleEndian.PutUint16(buffer2, uint16(len(key)))
-	lstm.wal.file.Write(buffer2)
-	lstm.wal.file.Write([]byte(key))
-	return lstm.mem.Del(key)
+	v, err := lstm.Get(key)
+	if err == nil {
+		if err0 := lstm.mem.Del(key); err0 != nil {
+			return v, errors.New("Error While Deleting")
+		}
+		buffer2 := make([]byte, 2)
+		lstm.wal.file.Write([]byte("d"))
+		binary.LittleEndian.PutUint16(buffer2, uint16(len(key)))
+		lstm.wal.file.Write(buffer2)
+		lstm.wal.file.Write([]byte(key))
+	}
+	return v, err
 }
 
 func (lstm *Lstm) memFlush() {
