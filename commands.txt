@@ -2,15 +2,27 @@ Setting
 
 curl -X POST -H "Content-Type: application/json" -d '{"zakaria":"elmaachi"}' "http://localhost:8081/set"
 curl -X POST -H "Content-Type: application/json" -d '{"injustice":"destroy"}' "http://localhost:8081/set"
+curl -X POST -H "Content-Type: application/json" -d '{"key1":"value1"}' "http://localhost:8081/set"
+curl -X POST -H "Content-Type: application/json" -d '{"soul":"elamari"}' "http://localhost:8081/set"
+curl -X POST -H "Content-Type: application/json" -d '{"cool":"best"}' "http://localhost:8081/set"
 
-curl -X POST -H "Content-Type: application/json" -d '{"soul":"elamari", "cool":"best"}' "http://localhost:8081/set"
-curl -X POST -H "Content-Type: application/json" -d '{"key1":"value1", "soul":"elamari"}' "http://localhost:8081/set"
+curl -X POST -H "Content-Type: application/json" -d '{"um6p":"cs"}' "http://localhost:8081/set"
+curl -X POST -H "Content-Type: application/json" -d '{"age":"25"}' "http://localhost:8081/set"
+curl -X POST -H "Content-Type: application/json" -d '{"city":"marrakech"}' "http://localhost:8081/set"
 
-curl -X POST -H "Content-Type: application/json" -d '{"um6p":"cs", "age":"25", "city":"marrakech"}' "http://localhost:8081/set"
-curl -X POST -H "Content-Type: application/json" -d '{"why":"because", "status":"active", "priority": "high"}' "http://localhost:8081/set"
+curl -X POST -H "Content-Type: application/json" -d '{"why":"because"}' "http://localhost:8081/set"
+curl -X POST -H "Content-Type: application/json" -d '{"status":"active"}' "http://localhost:8081/set"
+curl -X POST -H "Content-Type: application/json" -d '{"priority":"high"}' "http://localhost:8081/set"
 
-curl -X POST -H "Content-Type: application/json" -d '{"life":"hard", "color":"blue", "size":"large", "weight":"heavy"}' "http://localhost:8081/set"
-curl -X POST -H "Content-Type: application/json" -d '{"siblings":"3", "temperature": "cool", "time":"morning", "day":"Monday"}' "http://localhost:8081/set"
+curl -X POST -H "Content-Type: application/json" -d '{"life":"hard"}' "http://localhost:8081/set"
+curl -X POST -H "Content-Type: application/json" -d '{"color":"blue"}' "http://localhost:8081/set"
+curl -X POST -H "Content-Type: application/json" -d '{"size":"large"}' "http://localhost:8081/set"
+curl -X POST -H "Content-Type: application/json" -d '{"weight":"heavy"}' "http://localhost:8081/set"
+
+curl -X POST -H "Content-Type: application/json" -d '{"siblings":"3"}' "http://localhost:8081/set"
+curl -X POST -H "Content-Type: application/json" -d '{"temperature":"cool"}' "http://localhost:8081/set"
+curl -X POST -H "Content-Type: application/json" -d '{"time":"morning"}' "http://localhost:8081/set"
+curl -X POST -H "Content-Type: application/json" -d '{"day":"Monday"}' "http://localhost:8081/set"
 
 
 Getting

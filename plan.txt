@@ -1,10 +1,9 @@
 Sync Files
-Rb Tree
-
+Go routine handling
 
 Wal Cleaning
 Compaction
-Go routine handling
+
 Test Files
 
 Error handling
