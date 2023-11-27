@@ -9,7 +9,8 @@ import (
 	"os"
 )
 
-const flushThreshold = 1024
+const flushThreshold = 20
+const cleanThreshold = 30
 const path1 = "Zen_SST\\ZenFile"
 const path2 = ".sst"
 
@@ -102,7 +103,7 @@ func (lstm *Lstm) Del(key string) (string, error) {
 	return v, err
 }
 
-// memFlush periodically flushes the in-memory table to disk.
+// memFlush periodically flushes the in-memory table to disk. Also handles Wal Cleaning.
 func (lstm *Lstm) memFlush() {
 	for {
 		if lstm.mem.size >= flushThreshold {
@@ -111,28 +112,45 @@ func (lstm *Lstm) memFlush() {
 			}
 			lstm.mem = NewMemTable()
 			lstm.sstFiles = append(lstm.sstFiles, lstm.sstFiles[len(lstm.sstFiles)-1]+1)
-			file, err := os.OpenFile("meta.wal", os.O_APPEND|os.O_CREATE, 466)
-			if err != nil {
-				log.Fatal(err)
-			}
+
 			buffer4 := make([]byte, 4)
 			binary.LittleEndian.PutUint32(buffer4, uint32(lstm.sstFiles[len(lstm.sstFiles)-1]))
-			if _, err := file.Write(buffer4); err != nil {
+			if _, err := lstm.wal.meta.Write(buffer4); err != nil {
 				log.Println(err)
 			}
+
+			buffer8 := make([]byte, 8)
 			lstm.wal.water.Seek(0, io.SeekStart)
 			info, err := lstm.wal.file.Stat()
-			binary.LittleEndian.PutUint32(buffer4, uint32(info.Size()))
-			if _, err := lstm.wal.water.Write(buffer4); err != nil {
+			if err != nil {
 				log.Println(err)
 			}
+			binary.LittleEndian.PutUint64(buffer8, uint64(info.Size()))
+			if _, err := lstm.wal.water.Write(buffer8); err != nil {
+				log.Println(err)
+			}
+			lstm.walClean()
+		}
+	}
+}
+
+func (lstm *Lstm) walClean() {
+	stats, err := lstm.wal.file.Stat()
+	if err != nil {
+		return
+	}
+
+	if stats.Size() >= cleanThreshold {
+		err = lstm.wal.Clean()
+		if err != nil {
+			log.Printf("Error Cleaning the Wal: %v", err)
 		}
 	}
 }
 
 // LstmDB initializes the storage manager.
 func LstmDB() (*Lstm, error) {
-	file, err := os.OpenFile("log.wal", os.O_RDONLY|os.O_CREATE, 466)
+	file, err := os.OpenFile("log.wal", os.O_RDONLY|os.O_CREATE, FilePermission)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +160,7 @@ func LstmDB() (*Lstm, error) {
 	if _, err = os.Stat("meta.wal"); os.IsNotExist(err) {
 		exists = false
 	}
-	meta, err := os.OpenFile("meta.wal", os.O_RDWR|os.O_CREATE, 466)
+	meta, err := os.OpenFile("meta.wal", FileFlags, FilePermission)
 	if !exists {
 		binary.LittleEndian.PutUint32(buffer4, 0)
 		if _, err := meta.Write(buffer4); err != nil {
@@ -157,7 +175,7 @@ func LstmDB() (*Lstm, error) {
 	if _, err = os.Stat("water.wal"); os.IsNotExist(err) {
 		exists = false
 	}
-	water, err := os.OpenFile("water.wal", os.O_RDWR|os.O_CREATE, 466)
+	water, err := os.OpenFile("water.wal", os.O_RDWR|os.O_CREATE, FilePermission)
 	if !exists {
 		watermark = 0
 		binary.LittleEndian.PutUint64(buffer8, 0)
@@ -219,7 +237,7 @@ func LstmDB() (*Lstm, error) {
 		}
 	}
 	file.Close()
-	file, err = os.OpenFile("log.wal", os.O_APPEND, 466)
+	file, err = os.OpenFile("log.wal", FileFlags, FilePermission)
 	if err != nil {
 		log.Println(err)
 		return nil, err
@@ -227,7 +245,7 @@ func LstmDB() (*Lstm, error) {
 	resLstm := &Lstm{
 		mem:      mem,
 		buffer:   make([]*MemTable, 10),
-		wal:      &Wal{watermark, file, water, meta},
+		wal:      &Wal{watermark: watermark, file: file, water: water, meta: meta},
 		sstFiles: sstFiles,
 	}
 	go resLstm.memFlush()

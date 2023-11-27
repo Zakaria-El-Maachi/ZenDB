@@ -8,8 +8,9 @@ import (
 
 // Constants for file-related operations.
 const (
-	FilePermission = 444
-	FileFlags      = os.O_APPEND | os.O_CREATE
+	FileReadOnlyPermission = 444
+	FilePermission         = 666
+	FileFlags              = os.O_APPEND | os.O_CREATE
 )
 
 // MemTable represents an in-memory table.

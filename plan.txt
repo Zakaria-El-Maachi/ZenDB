@@ -1,14 +1,12 @@
-Test Files
-
 Sync Files
 Wal Cleaning
+
 Compaction
 
 Go routine handling
 
-Error handling (Very Few but there are some errors here and there that are not handled)
-Refactoring Some things could be refactored into functions for sure
-
-
 Bloom Filter
 Data Compression
+
+Error handling (Very Few but there are some errors here and there that are not handled)
+Refactoring Some things could be refactored into functions for sure
