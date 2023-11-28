@@ -1,6 +1,9 @@
 Sync Files
 Wal Cleaning
 
+Try to change logs between cleanings, such that the cleaning of a log is done 
+concurrently with writing to the othe log (No down Time)
+
 Compaction
 
 Go routine handling

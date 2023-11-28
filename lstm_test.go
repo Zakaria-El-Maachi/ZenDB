@@ -9,6 +9,9 @@ import (
 
 // TestLstmSetGet tests the Set and Get methods of Lstm.
 func TestLstmSetGet(t *testing.T) {
+	os.Remove("log.wal")
+	os.Remove("meta.wal")
+	os.Remove("water.wal")
 	lstm, err := LstmDB()
 	if err != nil {
 		t.Fatalf("Error creating Lstm: %v", err)
@@ -42,6 +45,9 @@ func TestLstmSetGet(t *testing.T) {
 
 // TestLstmDel tests the Del method of Lstm.
 func TestLstmDel(t *testing.T) {
+	os.Remove("log.wal")
+	os.Remove("meta.wal")
+	os.Remove("water.wal")
 	lstm, err := LstmDB()
 	if err != nil {
 		t.Fatalf("Error creating Lstm: %v", err)
@@ -75,6 +81,9 @@ func TestLstmDel(t *testing.T) {
 
 // TestLstmMemFlush tests the memFlush method of Lstm.
 func TestLstmMemFlush(t *testing.T) {
+	os.Remove("log.wal")
+	os.Remove("meta.wal")
+	os.Remove("water.wal")
 	lstm, err := LstmDB()
 	if err != nil {
 		t.Fatalf("Error creating Lstm: %v", err)
@@ -110,6 +119,9 @@ func TestLstmMemFlush(t *testing.T) {
 
 // TestLstmGetAfterFlush tests the Get method of Lstm after memFlush.
 func TestLstmGetAfterFlush(t *testing.T) {
+	os.Remove("log.wal")
+	os.Remove("meta.wal")
+	os.Remove("water.wal")
 	lstm, err := LstmDB()
 	if err != nil {
 		t.Fatalf("Error creating Lstm: %v", err)

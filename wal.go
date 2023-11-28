@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"sync"
 )
 
 const (
@@ -17,7 +16,6 @@ const (
 var (
 	// ErrWriteFailed is an error when writing to the WAL fails.
 	ErrWriteFailed = errors.New("write to WAL failed")
-	ErrMarker      = errors.New("Here is the error")
 	// ErrSyncFailed is an error when syncing the WAL file fails.
 	ErrSyncFailed = errors.New("syncing WAL file failed")
 	// ErrReadFailed is an error when reading from the WAL file fails.
@@ -30,7 +28,7 @@ type Wal struct {
 	file      *os.File
 	water     *os.File
 	meta      *os.File
-	mu        sync.Mutex
+	notifier  chan bool
 }
 
 // Write appends the given operation to the WAL and flushes immediately.
@@ -46,12 +44,21 @@ func (w *Wal) Write(op []byte) error {
 
 // Clean removes watermarked entries from the WAL while updating the watermark, in an atomic way
 func (w *Wal) Clean() error {
-	w.mu.Lock()
-	defer w.mu.Unlock()
 	log.Println("Cleaning Wal Started")
 
+	// Get the current file name
+	fileName := w.file.Name()
+
+	// Close the file to release resources (but don't close the reference)
+	w.file.Close()
+	// Open the file with the same name
 	var err error
-	w.file, err = os.Open(w.file.Name())
+	w.file, err = os.OpenFile(fileName, os.O_RDWR, FilePermission)
+	if err != nil {
+		return ErrReadFailed
+	}
+
+	// Create a temporary file
 	tempFile, err := os.Create("tempfile.wal")
 	if err != nil {
 		return ErrWriteFailed
@@ -77,16 +84,17 @@ func (w *Wal) Clean() error {
 		}
 	}
 
-	err = os.Rename(tempFile.Name(), w.file.Name())
+	tempFile.Close()
+	w.file.Close()
+
+	// Rename the temporary file to the original file
+	err = os.Rename("tempfile.wal", fileName)
 	if err != nil {
 		return err
 	}
-	w.file, err = os.OpenFile(w.file.Name(), FileFlags, FilePermission)
-	if err != nil {
-		return ErrReadFailed
-	}
-
 	w.watermark = 0
+
+	// Update watermark in water file
 	buffer8 := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buffer8, 0)
 

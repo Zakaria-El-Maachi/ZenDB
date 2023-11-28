@@ -7,10 +7,11 @@ import (
 	"io"
 	"log"
 	"os"
+	"sync"
 )
 
-const flushThreshold = 20
-const cleanThreshold = 30
+const flushThreshold = 1024
+const cleanThreshold = 1024
 const path1 = "Zen_SST\\ZenFile"
 const path2 = ".sst"
 
@@ -26,13 +27,15 @@ var (
 // Lstm represents the main storage manager.
 type Lstm struct {
 	mem      *MemTable
-	buffer   []*MemTable
 	wal      *Wal
 	sstFiles []int
+	mu       sync.Mutex
 }
 
 // Set adds a new key-value pair to the storage manager.
 func (lstm *Lstm) Set(key, value string) error {
+	defer lstm.wal.Clean()
+	defer lstm.memFlush()
 	buffer2 := make([]byte, 2)
 	if _, err := lstm.wal.file.Write([]byte("s")); err != nil {
 		return err
@@ -83,6 +86,8 @@ func (lstm *Lstm) Get(key string) (string, error) {
 
 // Del removes a key from the storage manager.
 func (lstm *Lstm) Del(key string) (string, error) {
+	defer lstm.memFlush()
+	defer lstm.wal.Clean()
 	v, err := lstm.Get(key)
 	if err == nil {
 		if err := lstm.mem.Del(key); err != nil {
@@ -105,31 +110,28 @@ func (lstm *Lstm) Del(key string) (string, error) {
 
 // memFlush periodically flushes the in-memory table to disk. Also handles Wal Cleaning.
 func (lstm *Lstm) memFlush() {
-	for {
-		if lstm.mem.size >= flushThreshold {
-			if err := lstm.mem.Flush(path1 + fmt.Sprint(lstm.sstFiles[len(lstm.sstFiles)-1]+1) + path2); err != nil {
-				log.Println(err)
-			}
-			lstm.mem = NewMemTable()
-			lstm.sstFiles = append(lstm.sstFiles, lstm.sstFiles[len(lstm.sstFiles)-1]+1)
+	if lstm.mem.size >= flushThreshold {
+		if err := lstm.mem.Flush(path1 + fmt.Sprint(lstm.sstFiles[len(lstm.sstFiles)-1]+1) + path2); err != nil {
+			log.Println(err)
+		}
+		lstm.mem = NewMemTable()
+		lstm.sstFiles = append(lstm.sstFiles, lstm.sstFiles[len(lstm.sstFiles)-1]+1)
 
-			buffer4 := make([]byte, 4)
-			binary.LittleEndian.PutUint32(buffer4, uint32(lstm.sstFiles[len(lstm.sstFiles)-1]))
-			if _, err := lstm.wal.meta.Write(buffer4); err != nil {
-				log.Println(err)
-			}
+		buffer4 := make([]byte, 4)
+		binary.LittleEndian.PutUint32(buffer4, uint32(lstm.sstFiles[len(lstm.sstFiles)-1]))
+		if _, err := lstm.wal.meta.Write(buffer4); err != nil {
+			log.Println(err)
+		}
 
-			buffer8 := make([]byte, 8)
-			lstm.wal.water.Seek(0, io.SeekStart)
-			info, err := lstm.wal.file.Stat()
-			if err != nil {
-				log.Println(err)
-			}
-			binary.LittleEndian.PutUint64(buffer8, uint64(info.Size()))
-			if _, err := lstm.wal.water.Write(buffer8); err != nil {
-				log.Println(err)
-			}
-			lstm.walClean()
+		buffer8 := make([]byte, 8)
+		lstm.wal.water.Seek(0, io.SeekStart)
+		info, err := lstm.wal.file.Stat()
+		if err != nil {
+			log.Println(err)
+		}
+		binary.LittleEndian.PutUint64(buffer8, uint64(info.Size()))
+		if _, err := lstm.wal.water.Write(buffer8); err != nil {
+			log.Println(err)
 		}
 	}
 }
@@ -146,6 +148,8 @@ func (lstm *Lstm) walClean() {
 			log.Printf("Error Cleaning the Wal: %v", err)
 		}
 	}
+
+	lstm.wal.file, err = os.OpenFile("log.wal", FileFlags, FilePermission)
 }
 
 // LstmDB initializes the storage manager.
@@ -242,12 +246,11 @@ func LstmDB() (*Lstm, error) {
 		log.Println(err)
 		return nil, err
 	}
+
 	resLstm := &Lstm{
 		mem:      mem,
-		buffer:   make([]*MemTable, 10),
 		wal:      &Wal{watermark: watermark, file: file, water: water, meta: meta},
 		sstFiles: sstFiles,
 	}
-	go resLstm.memFlush()
 	return resLstm, nil
 }
