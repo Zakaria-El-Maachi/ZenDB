@@ -12,7 +12,6 @@ func TestWalWrite(t *testing.T) {
 	}
 	t.Log(wal.file.Name())
 	defer wal.file.Close()
-	defer os.Remove(wal.file.Name())
 
 	op := []byte("test operation")
 
@@ -41,9 +40,6 @@ func TestWalClean(t *testing.T) {
 		if err := wal.file.Close(); err != nil {
 			t.Errorf("Error closing WAL file: %v", err)
 		}
-		if err := os.Remove(wal.file.Name()); err != nil {
-			t.Errorf("Error removing WAL file: %v", err)
-		}
 	}()
 
 	buffer := make([]byte, 0)
@@ -69,5 +65,4 @@ func TestWalClean(t *testing.T) {
 	if fileSize := fileInfo.Size(); fileSize > 0 {
 		t.Errorf("Error, Wal Not truncated. New Size after Cleaning : %d", fileSize)
 	}
-
 }

@@ -74,7 +74,7 @@ func TestParse(t *testing.T) {
 	}
 	defer testFile.Close()
 
-	mem, err := parse(testFile, 5)
+	mem, err := parseBody(testFile, 5)
 	if err != nil {
 		t.Errorf("Error parsing file: %v", err)
 	}

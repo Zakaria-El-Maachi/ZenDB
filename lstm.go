@@ -12,10 +12,13 @@ import (
 	"sync"
 )
 
-const flushThreshold = 20
-const cleanThreshold = 20
-const path1 = "Zen_SST\\ZenFile"
-const path2 = ".sst"
+const (
+	flushThreshold      = 20
+	cleanThreshold      = 40
+	CompactionThreshold = 2
+	path1               = "Zen_SST\\ZenFile"
+	path2               = ".sst"
+)
 
 var (
 	ErrFileNotRecognized      = errors.New("File not recognized")
@@ -63,7 +66,7 @@ func (lstm *Lstm) Set(key, value string) error {
 func (lstm *Lstm) Search(key string) (string, error) {
 	v, err := lstm.mem.Get(key)
 	if err != nil && errors.Is(err, ErrKeyNotFound) {
-		for i := len(lstm.sstFiles) - 1; i > 0; i-- {
+		for i := len(lstm.sstFiles) - 1; i >= 0 && lstm.sstFiles[i] != 0; i-- {
 			file, err := os.Open(path1 + fmt.Sprint(lstm.sstFiles[i]) + path2)
 			if err != nil {
 				log.Println(err)
@@ -184,12 +187,12 @@ func LstmDB() (*Lstm, error) {
 		log.Println(err)
 		return nil, err
 	}
-
 	resLstm := &Lstm{
 		mem:      mem,
 		wal:      &Wal{file},
 		sstFiles: sstFiles,
 	}
+	go resLstm.Compact()
 	return resLstm, nil
 }
 
@@ -223,4 +226,47 @@ func getSstFiles() []int {
 		sstFiles = append(sstFiles, 0)
 	}
 	return sstFiles
+}
+
+func (lstm *Lstm) Compact() {
+	for {
+		length := len(lstm.sstFiles)
+		if length == 0 {
+			continue
+		}
+		n1 := 0
+		n2 := 1
+		if lstm.sstFiles[0] == 0 {
+			length--
+			n1++
+			n2++
+		}
+		if length >= CompactionThreshold {
+			lstm.mu.Lock()
+			file1, err := os.Open(path1 + fmt.Sprint(lstm.sstFiles[n1]) + path2)
+			if err != nil {
+				log.Println(err)
+			}
+			file2, err := os.Open(path1 + fmt.Sprint(lstm.sstFiles[n2]) + path2)
+			if err != nil {
+				log.Println(err)
+			}
+			memTemp := NewMemTable()
+			if err = parse(file1, memTemp); err != nil {
+				log.Println(err)
+			}
+			if err = parse(file2, memTemp); err != nil {
+				log.Println(err)
+			}
+			file1.Close()
+			os.Remove(file1.Name())
+			file2.Close()
+			os.Remove(file2.Name())
+			if err = memTemp.Flush(file1.Name()); err != nil {
+				log.Println(err)
+			}
+			lstm.sstFiles = append(lstm.sstFiles[:n1], lstm.sstFiles[n2+1:]...)
+			lstm.mu.Unlock()
+		}
+	}
 }
