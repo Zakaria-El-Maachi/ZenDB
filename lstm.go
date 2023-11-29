@@ -7,11 +7,13 @@ import (
 	"io"
 	"log"
 	"os"
+	"regexp"
+	"strconv"
 	"sync"
 )
 
-const flushThreshold = 1024
-const cleanThreshold = 1024
+const flushThreshold = 20
+const cleanThreshold = 20
 const path1 = "Zen_SST\\ZenFile"
 const path2 = ".sst"
 
@@ -29,12 +31,13 @@ type Lstm struct {
 	mem      *MemTable
 	wal      *Wal
 	sstFiles []int
-	mu       sync.Mutex
+	mu       sync.RWMutex
 }
 
 // Set adds a new key-value pair to the storage manager.
 func (lstm *Lstm) Set(key, value string) error {
-	defer lstm.wal.Clean()
+	lstm.mu.Lock()
+	defer lstm.mu.Unlock()
 	defer lstm.memFlush()
 	buffer2 := make([]byte, 2)
 	if _, err := lstm.wal.file.Write([]byte("s")); err != nil {
@@ -57,8 +60,7 @@ func (lstm *Lstm) Set(key, value string) error {
 	return lstm.mem.Set(key, value)
 }
 
-// Get retrieves the value associated with a key from the storage manager.
-func (lstm *Lstm) Get(key string) (string, error) {
+func (lstm *Lstm) Search(key string) (string, error) {
 	v, err := lstm.mem.Get(key)
 	if err != nil && errors.Is(err, ErrKeyNotFound) {
 		for i := len(lstm.sstFiles) - 1; i > 0; i-- {
@@ -84,11 +86,19 @@ func (lstm *Lstm) Get(key string) (string, error) {
 	return v, err
 }
 
+// Get retrieves the value associated with a key from the storage manager.
+func (lstm *Lstm) Get(key string) (string, error) {
+	lstm.mu.RLock()
+	defer lstm.mu.RUnlock()
+	return lstm.Search(key)
+}
+
 // Del removes a key from the storage manager.
 func (lstm *Lstm) Del(key string) (string, error) {
+	lstm.mu.Lock()
+	defer lstm.mu.Unlock()
 	defer lstm.memFlush()
-	defer lstm.wal.Clean()
-	v, err := lstm.Get(key)
+	v, err := lstm.Search(key)
 	if err == nil {
 		if err := lstm.mem.Del(key); err != nil {
 			return v, errors.New("Error While Deleting")
@@ -117,98 +127,26 @@ func (lstm *Lstm) memFlush() {
 		lstm.mem = NewMemTable()
 		lstm.sstFiles = append(lstm.sstFiles, lstm.sstFiles[len(lstm.sstFiles)-1]+1)
 
-		buffer4 := make([]byte, 4)
-		binary.LittleEndian.PutUint32(buffer4, uint32(lstm.sstFiles[len(lstm.sstFiles)-1]))
-		if _, err := lstm.wal.meta.Write(buffer4); err != nil {
-			log.Println(err)
-		}
-
-		buffer8 := make([]byte, 8)
-		lstm.wal.water.Seek(0, io.SeekStart)
-		info, err := lstm.wal.file.Stat()
-		if err != nil {
-			log.Println(err)
-		}
-		binary.LittleEndian.PutUint64(buffer8, uint64(info.Size()))
-		if _, err := lstm.wal.water.Write(buffer8); err != nil {
+		if err := lstm.wal.Clean(); err != nil {
 			log.Println(err)
 		}
 	}
-}
-
-func (lstm *Lstm) walClean() {
-	stats, err := lstm.wal.file.Stat()
-	if err != nil {
-		return
-	}
-
-	if stats.Size() >= cleanThreshold {
-		err = lstm.wal.Clean()
-		if err != nil {
-			log.Printf("Error Cleaning the Wal: %v", err)
-		}
-	}
-
-	lstm.wal.file, err = os.OpenFile("log.wal", FileFlags, FilePermission)
 }
 
 // LstmDB initializes the storage manager.
 func LstmDB() (*Lstm, error) {
-	file, err := os.OpenFile("log.wal", os.O_RDONLY|os.O_CREATE, FilePermission)
+	file, err := os.OpenFile("log.wal", FileFlags, FilePermission)
 	if err != nil {
 		return nil, err
 	}
-	buffer8 := make([]byte, 8)
-	buffer4 := make([]byte, 4)
-	var exists bool = true
-	if _, err = os.Stat("meta.wal"); os.IsNotExist(err) {
-		exists = false
-	}
-	meta, err := os.OpenFile("meta.wal", FileFlags, FilePermission)
-	if !exists {
-		binary.LittleEndian.PutUint32(buffer4, 0)
-		if _, err := meta.Write(buffer4); err != nil {
-			log.Println(err)
-		}
-	}
-	mem := NewMemTable()
-	var watermark int64
-	sstFiles := make([]int, 1)
-	sstFiles[0] = 0
-	exists = true
-	if _, err = os.Stat("water.wal"); os.IsNotExist(err) {
-		exists = false
-	}
-	water, err := os.OpenFile("water.wal", os.O_RDWR|os.O_CREATE, FilePermission)
-	if !exists {
-		watermark = 0
-		binary.LittleEndian.PutUint64(buffer8, 0)
-		if _, err := water.Write(buffer8); err != nil {
-			log.Println(err)
-		}
-	} else {
-		if _, err := water.Read(buffer8); err != nil {
-			log.Println(err)
-		}
-		watermark = int64(binary.LittleEndian.Uint64(buffer8))
-	}
 
-	if _, err := meta.Seek(4, io.SeekStart); err != nil {
-		log.Println(err)
-	}
-	for {
-		if _, err := meta.Read(buffer4); err != nil {
-			if err == io.EOF {
-				break
-			}
-			log.Println(err)
-			return nil, err
-		}
-		sstFiles = append(sstFiles, int(binary.LittleEndian.Uint32(buffer4)))
-	}
+	mem := NewMemTable()
+
+	sstFiles := getSstFiles() //srgtgtstr ???
+
 	mark := make([]byte, 1)
 	var key, value string
-	if _, err := file.Seek(watermark, io.SeekStart); err != nil {
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
 		log.Println(err)
 		return nil, err
 	}
@@ -249,8 +187,40 @@ func LstmDB() (*Lstm, error) {
 
 	resLstm := &Lstm{
 		mem:      mem,
-		wal:      &Wal{watermark: watermark, file: file, water: water, meta: meta},
+		wal:      &Wal{file},
 		sstFiles: sstFiles,
 	}
 	return resLstm, nil
+}
+
+func getSstFiles() []int {
+	directory := "Zen_SST"
+
+	var sstFiles []int
+
+	// Read the directory entries
+	files, err := os.ReadDir(directory)
+	if err != nil {
+		log.Fatal("Error reading directory Zen_SST:", err)
+	}
+
+	// Define a regular expression to match file names like "ZenFileX.sst"
+	re := regexp.MustCompile(`^ZenFile(\d+)\.sst$`)
+
+	// Iterate through the files in the directory
+	for _, file := range files {
+		match := re.FindStringSubmatch(file.Name())
+		if match != nil {
+			x, err := strconv.Atoi(match[1])
+			if err == nil {
+				sstFiles = append(sstFiles, x)
+			}
+		} else {
+			os.Remove(file.Name())
+		}
+	}
+	if len(sstFiles) == 0 {
+		sstFiles = append(sstFiles, 0)
+	}
+	return sstFiles
 }
