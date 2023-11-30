@@ -34,10 +34,16 @@ var (
 	ErrInvalidValue = errors.New("Invalid value")
 )
 
+type DB interface {
+	Set(key, value string) error
+	Get(key string) (string, error)
+	Del(key string) (string, error)
+}
+
 type Server struct {
 	addr string
 	port string
-	lstm *Lstm
+	lstm DB
 }
 
 // fullAddress returns the full address of the server.

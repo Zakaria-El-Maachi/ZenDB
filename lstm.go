@@ -240,7 +240,6 @@ func (lstm *Lstm) Compact() {
 			if err = Parse(file2, memTemp); err != nil {
 				log.Println(err)
 			}
-			file1.Close()
 			file2.Close()
 			os.Remove(file2.Name())
 			if err = memTemp.Flush(file1.Name()); err != nil {

@@ -17,11 +17,13 @@ var pairs = map[string]string{
 
 // TestDecodeBytes tests the decodeBytes function.
 func TestDecodeBytes(t *testing.T) {
+	t.Helper()
 	testFile, err := os.Open("test_file.sst")
 	if err != nil {
 		t.Fatalf("Error opening test file: %v", err)
 	}
 	defer testFile.Close()
+
 	testFile.Seek(40, io.SeekStart)
 	result, err := decodeBytes(testFile)
 	if err != nil {
@@ -42,6 +44,7 @@ func TestDecodeBytes(t *testing.T) {
 
 // TestDecodeHeader tests the decodeHeader function.
 func TestDecodeHeader(t *testing.T) {
+	t.Helper()
 	testFile, err := os.Open("test_file.sst")
 	if err != nil {
 		t.Fatalf("Error opening test file: %v", err)
@@ -57,7 +60,7 @@ func TestDecodeHeader(t *testing.T) {
 		t.Errorf("Error decoding header, Magic Number: %v", magic)
 	}
 	if entryCount != 6 {
-		t.Errorf("Error decoding header,  EntryCount: %v", entryCount)
+		t.Errorf("Error decoding header, EntryCount: %v", entryCount)
 	}
 	if version != 1 {
 		t.Errorf("Error decoding header, Version Number: %v", version)
@@ -66,6 +69,7 @@ func TestDecodeHeader(t *testing.T) {
 
 // TestParse tests the parse function.
 func TestParse(t *testing.T) {
+	t.Helper()
 	testFile, err := os.Open("test_file.sst")
 	if err != nil {
 		t.Fatalf("Error opening test file: %v", err)
@@ -84,16 +88,17 @@ func TestParse(t *testing.T) {
 	for k, v := range pairs {
 		value, err := mem.Get(k)
 		if err != nil {
-			t.Error("Error parsing file, probably memTable implementatio")
+			t.Errorf("Error parsing file: %v", err)
 		}
 		if value != v {
-			t.Error("Error parsing file - value conflict")
+			t.Errorf("Error parsing file - value conflict")
 		}
 	}
 }
 
 // TestSearch tests the search function.
 func TestSearch(t *testing.T) {
+	t.Helper()
 	testFile, err := os.Open("test_file.sst")
 	if err != nil {
 		t.Fatalf("Error opening test file: %v", err)

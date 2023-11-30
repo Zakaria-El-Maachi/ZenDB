@@ -1,7 +1,5 @@
 Data Compression
 
-Better Tests Overall
-
 Compaction should not only be done on the first file, but all files up to the threshold
 
 
