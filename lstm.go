@@ -145,7 +145,7 @@ func LstmDB() (*Lstm, error) {
 
 	mem := NewMemTable()
 
-	sstFiles := getSstFiles() //srgtgtstr ???
+	sstFiles := getSstFiles()
 
 	mark := make([]byte, 1)
 	var key, value string
@@ -259,13 +259,12 @@ func (lstm *Lstm) Compact() {
 				log.Println(err)
 			}
 			file1.Close()
-			os.Remove(file1.Name())
 			file2.Close()
 			os.Remove(file2.Name())
 			if err = memTemp.Flush(file1.Name()); err != nil {
 				log.Println(err)
 			}
-			lstm.sstFiles = append(lstm.sstFiles[:n1], lstm.sstFiles[n2+1:]...)
+			lstm.sstFiles = append(lstm.sstFiles[:n2], lstm.sstFiles[n2+1:]...)
 			lstm.mu.Unlock()
 		}
 	}

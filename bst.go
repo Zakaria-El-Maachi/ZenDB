@@ -164,21 +164,11 @@ func (t *TreeNode) Traverse() []Pair {
 	return append(append(t.left.Traverse(), t.elem), t.right.Traverse()...)
 }
 
-// GetMaxOffset calculates the maximum offset in the list of pairs.
-func (t *TreeNode) GetMaxOffset(p []Pair) int {
-	if len(p) == 0 {
-		return 0
+// Bloom Filter from a pair slice
+func GetBloom(p []Pair) *BloomFilter {
+	bloom := NewBloomFilter(29, 10)
+	for _, element := range p {
+		bloom.Add([]byte(element.key))
 	}
-	if len(p) == 1 {
-		return 14
-	}
-	index := 14
-	for i := 0; i < len(p)-1; i++ {
-		if p[i].marker {
-			index += len(p[i].key) + 2 + len(p[i].value)
-		} else {
-			index += len(p[i].key)
-		}
-	}
-	return index + 3*(len(p)-1)
+	return bloom
 }

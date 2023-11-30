@@ -7,8 +7,9 @@ import (
 )
 
 var pairs = map[string]string{
-	"cool":      "best",
-	"testKey":   "testValue",
+	"status":    "active",
+	"priority":  "high",
+	"key1":      "value1",
 	"injustice": "destroy",
 	"soul":      "elamari",
 	"zakaria":   "elmaachi",
@@ -21,12 +22,12 @@ func TestDecodeBytes(t *testing.T) {
 		t.Fatalf("Error opening test file: %v", err)
 	}
 	defer testFile.Close()
-	testFile.Seek(15, io.SeekStart)
+	testFile.Seek(40, io.SeekStart)
 	result, err := decodeBytes(testFile)
 	if err != nil {
 		t.Errorf("Error decoding bytes: %v", err)
 	}
-	if result != "cool" {
+	if result != "injustice" {
 		t.Errorf("DecodeBytes is not well implemented: %v", result)
 	}
 
@@ -34,7 +35,7 @@ func TestDecodeBytes(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error decoding bytes: %v", err)
 	}
-	if result != "best" {
+	if result != "destroy" {
 		t.Errorf("DecodeBytes is not well implemented: %v", result)
 	}
 }
@@ -47,7 +48,7 @@ func TestDecodeHeader(t *testing.T) {
 	}
 	defer testFile.Close()
 
-	magic, entryCount, maxKey, version, err := decodeHeader(testFile)
+	magic, entryCount, _, version, err := decodeHeader(testFile)
 	if err != nil {
 		t.Errorf("Error decoding header: %v", err)
 	}
@@ -55,11 +56,8 @@ func TestDecodeHeader(t *testing.T) {
 	if magic != MAGIC {
 		t.Errorf("Error decoding header, Magic Number: %v", magic)
 	}
-	if entryCount != 5 {
+	if entryCount != 6 {
 		t.Errorf("Error decoding header,  EntryCount: %v", entryCount)
-	}
-	if maxKey != "zakaria" {
-		t.Errorf("Error decoding header, MaxKey: %v", maxKey)
 	}
 	if version != 1 {
 		t.Errorf("Error decoding header, Version Number: %v", version)
@@ -73,13 +71,13 @@ func TestParse(t *testing.T) {
 		t.Fatalf("Error opening test file: %v", err)
 	}
 	defer testFile.Close()
-
-	mem, err := parseBody(testFile, 5)
+	testFile.Seek(39, io.SeekStart)
+	mem, err := parseBody(testFile, 6)
 	if err != nil {
 		t.Errorf("Error parsing file: %v", err)
 	}
 
-	if mem.table.size != 5 {
+	if mem.table.size != 6 {
 		t.Error("Error parsing file - Table Size")
 	}
 	for k, v := range pairs {

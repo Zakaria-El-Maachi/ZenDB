@@ -47,8 +47,8 @@ func (mem *MemTable) Del(key string) error {
 // Flush writes the contents of the in-memory table to a file.
 func (mem *MemTable) Flush(fileName string) error {
 	kv := mem.table.Traverse()
-	maxOff := mem.table.GetMaxOffset(kv)
-	file, err := os.OpenFile(fileName, FileFlags, FilePermission)
+	bloom := GetBloom(kv)
+	file, err := os.Create(fileName)
 	if err != nil {
 		return err
 	}
@@ -61,13 +61,12 @@ func (mem *MemTable) Flush(fileName string) error {
 	if err := writeUint32ToFile(file, uint32(mem.table.size)); err != nil {
 		return err
 	}
-	if err := writeUint32ToFile(file, uint32(maxOff)); err != nil {
+	if err := bloom.WriteToFile(file); err != nil {
 		return err
 	}
 	if err := writeUint16ToFile(file, uint16(1)); err != nil {
 		return err
 	}
-
 	h := sha256.New()
 	for _, p := range kv {
 		if p.marker {

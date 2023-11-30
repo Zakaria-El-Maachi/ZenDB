@@ -3,7 +3,6 @@ Extras:
     Data Compression
 
 Last Day:
-    Sync Files
     Error handling (Very Few but there are some errors here and there that are not handled)
     Refactoring Some things could be refactored into functions for sure
     Better Tests Overall
