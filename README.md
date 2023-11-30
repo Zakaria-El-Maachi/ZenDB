@@ -17,7 +17,6 @@ The SST files are in binary format and include the following fields:
 * Bloom Filter: The bloom filter's bitset.
 * Version: A version number to manage updates to the value.
 * Key: The unique identifier for the value.
-* Key: The unique identifier for the value.
 * Value: The data associated with the key.
 * Checksum: A hash value to detect corrupted files.
 
@@ -29,7 +28,6 @@ The only part that I have found on the internet readily available and have copie
 ## Extras
 
 * Bloom filters: Bloom filters are used to quickly test for key existence in SST files.
-* Compression: SST files are compressed to save disk space.
 
 ## Problem Encountered - Wal Cleaning
 
@@ -37,6 +35,7 @@ At first (Refer to previous commits for details), I tried to implement the log f
 
 ## Future Improvements
 
+* **Compression:** SST files are compressed to save disk space.
 * **Ensuring Atomicity:** When Flushing, the creation of the SST File is not guaranteed to be atomic, and can lead to bugs when the application crashes (Never happened to me when testing). However, that is only dependent on the Write method of files (Operating System). As such, I am looking for methods to ensure atomicity of writing whole files.
 * **Concurrent Distributed Database:** Implement a concurrent distributed database to handle multiple clients and achieve high availability.
 * **Performance Enhancement:** Explore techniques to enhance the performance of the key-value store, such as utilizing Goroutines for parallel processing and optimizing data structures.
@@ -45,7 +44,13 @@ At first (Refer to previous commits for details), I tried to implement the log f
 
 To run the key-value store, follow these steps:
 
-1. Clone the repository.
-2. Start the server: `go run .`
+1. **Clone the repository.**
+
+2. **In `Lstm.go`, change the constants as you see fit:**
+   - `flushThreshold`: The threshold of bytes before flushing.
+   - `CompactionThreshold`: The number of SST files before starting to compact.
+
+3. **Start the server:**
+
 
 You can then access the key-value store using aforementioned API endpoints.
