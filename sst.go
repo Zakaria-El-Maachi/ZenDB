@@ -5,9 +5,29 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"io"
+	"os"
 )
 
-const MAGIC = "zeni"
+// Constants for file-related operations.
+const (
+	MAGIC                  = "zeni"
+	FileReadOnlyPermission = 0444
+	FilePermission         = 0666
+	FileFlags              = os.O_APPEND | os.O_CREATE | os.O_RDWR
+)
+
+func encodeString(input string) []byte {
+	// Encode the length of the string using 4 bytes
+	lengthBytes := make([]byte, 2)
+	binary.LittleEndian.PutUint16(lengthBytes, uint16(len(input)))
+
+	// Encode each character in the string
+	characterBytes := []byte(input)
+
+	// Combine the length bytes and character bytes
+
+	return append(lengthBytes, characterBytes...)
+}
 
 func decodeBytes(file io.ReadWriteSeeker) (string, error) {
 	var length uint16
@@ -47,81 +67,12 @@ func decodeHeader(file io.ReadWriteSeeker) (string, uint32, *BloomFilter, uint16
 	return magic, entryCount, CreateBloomFilter(bitset), binary.LittleEndian.Uint16(p2), nil
 }
 
-func parseBody(file io.ReadWriteSeeker, entrycount int) (*MemTable, error) {
-	mem := NewMemTable()
+func parseBody(file io.ReadWriteSeeker, entrycount int, mem *MemTable) error {
 	mark := make([]byte, 1)
 	var key, value string
 	var err error
 	h := sha256.New()
 	for i := 0; i < entrycount; i++ {
-		if _, err = file.Read(mark); err != nil {
-			return nil, ErrFileNotEncodedProperly
-		}
-		key, err = decodeBytes(file)
-		if err != nil {
-			return nil, err
-		}
-		if mark[0] == 's' {
-			value, err = decodeBytes(file)
-			if err != nil {
-				return nil, err
-			}
-			mem.Set(key, value)
-			h.Write([]byte(key + value))
-		} else if mark[0] == 'd' {
-			mem.Del(key)
-			h.Write([]byte(key))
-		} else {
-			return nil, ErrFileNotEncodedProperly
-		}
-
-	}
-
-	p := make([]byte, 32)
-	if n, err := file.Read(p); n < 32 || err != nil {
-		return nil, ErrFileNotEncodedProperly
-	}
-
-	if bytes.Compare(h.Sum(nil), p) != 0 {
-		return nil, ErrCorruptFile
-	}
-	return mem, nil
-}
-
-func search(key string, file io.ReadWriteSeeker) (string, error) {
-	magic, entryCount, bloom, _, err := decodeHeader(file)
-	if err != nil {
-		return "", err
-	}
-	if magic != MAGIC {
-		return "", ErrFileNotRecognized
-	}
-	if !bloom.Test([]byte(key)) {
-		return "", ErrKeyCannotBeInFile
-	}
-	mem, err := parseBody(file, int(entryCount))
-	if err != nil {
-		return "", err
-	}
-	value, err := mem.Get(key)
-	if err != nil {
-		return "", err
-	}
-	return value, nil
-}
-
-func parse(file io.ReadWriteSeeker, mem *MemTable) error {
-	magic, entryCount, _, _, err := decodeHeader(file)
-	if err != nil {
-		return err
-	}
-	if magic != MAGIC {
-		return ErrFileNotRecognized
-	}
-	mark := make([]byte, 1)
-	var key, value string
-	h := sha256.New()
-	for i := 0; i < int(entryCount); i++ {
 		if _, err = file.Read(mark); err != nil {
 			return ErrFileNotEncodedProperly
 		}
@@ -154,4 +105,38 @@ func parse(file io.ReadWriteSeeker, mem *MemTable) error {
 		return ErrCorruptFile
 	}
 	return nil
+}
+
+func Search(key string, file io.ReadWriteSeeker) (string, error) {
+	magic, entryCount, bloom, _, err := decodeHeader(file)
+	if err != nil {
+		return "", err
+	}
+	if magic != MAGIC {
+		return "", ErrFileNotRecognized
+	}
+	if !bloom.Test([]byte(key)) {
+		return "", ErrKeyCannotBeInFile
+	}
+	mem := NewMemTable()
+	err = parseBody(file, int(entryCount), mem)
+	if err != nil {
+		return "", err
+	}
+	value, err := mem.Get(key)
+	if err != nil {
+		return "", err
+	}
+	return value, nil
+}
+
+func Parse(file io.ReadWriteSeeker, mem *MemTable) error {
+	magic, entryCount, _, _, err := decodeHeader(file)
+	if err != nil {
+		return err
+	}
+	if magic != MAGIC {
+		return ErrFileNotRecognized
+	}
+	return parseBody(file, int(entryCount), mem)
 }

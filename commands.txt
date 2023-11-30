@@ -1,4 +1,4 @@
-Setting 
+Setting
 
 curl -X POST -H "Content-Type: application/json" -d '{"zakaria":"elmaachi"}' "http://localhost:8081/set"
 curl -X POST -H "Content-Type: application/json" -d '{"injustice":"destroy"}' "http://localhost:8081/set"
@@ -23,7 +23,6 @@ curl -X POST -H "Content-Type: application/json" -d '{"siblings":"3"}' "http://l
 curl -X POST -H "Content-Type: application/json" -d '{"temperature":"cool"}' "http://localhost:8081/set"
 curl -X POST -H "Content-Type: application/json" -d '{"time":"morning"}' "http://localhost:8081/set"
 curl -X POST -H "Content-Type: application/json" -d '{"day":"Monday"}' "http://localhost:8081/set"
-
 
 Getting
 

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -14,7 +13,7 @@ import (
 
 const (
 	flushThreshold      = 20
-	cleanThreshold      = 40
+	cleanThreshold      = 50
 	CompactionThreshold = 2
 	path1               = "Zen_SST\\ZenFile"
 	path2               = ".sst"
@@ -27,6 +26,7 @@ var (
 	ErrKeyNotFound            = errors.New("Key not found")
 	ErrKeyDeleted             = errors.New("Key does not exist")
 	ErrKeyCannotBeInFile      = errors.New("Key cannot be in current file")
+	ErrDeletion               = errors.New("Error While Deleting")
 )
 
 // Lstm represents the main storage manager.
@@ -42,22 +42,7 @@ func (lstm *Lstm) Set(key, value string) error {
 	lstm.mu.Lock()
 	defer lstm.mu.Unlock()
 	defer lstm.memFlush()
-	buffer2 := make([]byte, 2)
-	if _, err := lstm.wal.file.Write([]byte("s")); err != nil {
-		return err
-	}
-	binary.LittleEndian.PutUint16(buffer2, uint16(len(key)))
-	if _, err := lstm.wal.file.Write(buffer2); err != nil {
-		return err
-	}
-	if _, err := lstm.wal.file.Write([]byte(key)); err != nil {
-		return err
-	}
-	binary.LittleEndian.PutUint16(buffer2, uint16(len(value)))
-	if _, err := lstm.wal.file.Write(buffer2); err != nil {
-		return err
-	}
-	if _, err := lstm.wal.file.Write([]byte(value)); err != nil {
+	if err := lstm.wal.RecordSet(key, value); err != nil {
 		return err
 	}
 	return lstm.mem.Set(key, value)
@@ -72,7 +57,7 @@ func (lstm *Lstm) Search(key string) (string, error) {
 				log.Println(err)
 				continue
 			}
-			v, err := search(key, file)
+			v, err := Search(key, file)
 			if err != nil {
 				if errors.Is(err, ErrFileNotRecognized) || errors.Is(err, ErrFileNotEncodedProperly) || errors.Is(err, ErrCorruptFile) {
 					log.Println(err)
@@ -103,20 +88,10 @@ func (lstm *Lstm) Del(key string) (string, error) {
 	defer lstm.memFlush()
 	v, err := lstm.Search(key)
 	if err == nil {
-		if err := lstm.mem.Del(key); err != nil {
-			return v, errors.New("Error While Deleting")
+		if err := lstm.wal.RecordDel(key); err != nil {
+			return "", err
 		}
-		buffer2 := make([]byte, 2)
-		if _, err := lstm.wal.file.Write([]byte("d")); err != nil {
-			return v, err
-		}
-		binary.LittleEndian.PutUint16(buffer2, uint16(len(key)))
-		if _, err := lstm.wal.file.Write(buffer2); err != nil {
-			return v, err
-		}
-		if _, err := lstm.wal.file.Write([]byte(key)); err != nil {
-			return v, err
-		}
+		return v, lstm.mem.Del(key)
 	}
 	return v, err
 }
@@ -136,8 +111,9 @@ func (lstm *Lstm) memFlush() {
 	}
 }
 
-// LstmDB initializes the storage manager.
-func LstmDB() (*Lstm, error) {
+func Recover() (*MemTable, error) {
+	log.Println("Recovering...")
+	defer log.Println("Recovering Complete\nReady For Requests")
 	file, err := os.OpenFile("log.wal", FileFlags, FilePermission)
 	if err != nil {
 		return nil, err
@@ -145,12 +121,9 @@ func LstmDB() (*Lstm, error) {
 
 	mem := NewMemTable()
 
-	sstFiles := getSstFiles()
-
 	mark := make([]byte, 1)
 	var key, value string
 	if _, err := file.Seek(0, io.SeekStart); err != nil {
-		log.Println(err)
 		return nil, err
 	}
 	for {
@@ -159,32 +132,37 @@ func LstmDB() (*Lstm, error) {
 			break
 		}
 		if err != nil {
-			log.Println(err)
 			return nil, ErrFileNotEncodedProperly
 		}
 		key, err = decodeBytes(file)
 		if err != nil {
-			log.Println(err)
 			return nil, err
 		}
 		if mark[0] == 's' {
 			value, err = decodeBytes(file)
 			if err != nil {
-				log.Println(err)
 				return nil, err
 			}
 			mem.Set(key, value)
 		} else if mark[0] == 'd' {
 			mem.Del(key)
 		} else {
-			log.Println(err)
 			return nil, ErrFileNotEncodedProperly
 		}
 	}
 	file.Close()
-	file, err = os.OpenFile("log.wal", FileFlags, FilePermission)
+	return mem, nil
+}
+
+// LstmDB initializes the storage manager.
+func LstmDB() (*Lstm, error) {
+	mem, err := Recover()
 	if err != nil {
-		log.Println(err)
+		return nil, err
+	}
+	sstFiles := getSstFiles()
+	file, err := os.OpenFile("log.wal", FileFlags, FilePermission)
+	if err != nil {
 		return nil, err
 	}
 	resLstm := &Lstm{
@@ -252,10 +230,10 @@ func (lstm *Lstm) Compact() {
 				log.Println(err)
 			}
 			memTemp := NewMemTable()
-			if err = parse(file1, memTemp); err != nil {
+			if err = Parse(file1, memTemp); err != nil {
 				log.Println(err)
 			}
-			if err = parse(file2, memTemp); err != nil {
+			if err = Parse(file2, memTemp); err != nil {
 				log.Println(err)
 			}
 			file1.Close()

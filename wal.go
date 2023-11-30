@@ -35,6 +35,17 @@ func (w *Wal) Write(op []byte) error {
 	return nil
 }
 
+func (w *Wal) RecordSet(key, value string) error {
+	op := append([]byte("s"), encodeString(key)...)
+	op = append(op, encodeString(value)...)
+	return w.Write(op)
+}
+
+func (w *Wal) RecordDel(key string) error {
+	op := append([]byte("d"), encodeString(key)...)
+	return w.Write(op)
+}
+
 // Clean removes watermarked entries from the WAL while updating the watermark, in an atomic way
 func (w *Wal) Clean() error {
 	if err := w.file.Close(); err != nil {

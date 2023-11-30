@@ -1,9 +1,8 @@
-Extras:
-    Bloom Filter
-    Data Compression
+Data Compression
 
-Last Day:
-    Error handling (Very Few but there are some errors here and there that are not handled)
-    Refactoring Some things could be refactored into functions for sure
-    Better Tests Overall
+Error handling (Very Few but there are some errors here and there that are not handled)
+Better Tests Overall
 
+Compaction should not only be done on the first file, but all files up to the threshold
+
+mem flush function Refactoring

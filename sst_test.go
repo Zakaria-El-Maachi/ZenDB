@@ -72,7 +72,8 @@ func TestParse(t *testing.T) {
 	}
 	defer testFile.Close()
 	testFile.Seek(39, io.SeekStart)
-	mem, err := parseBody(testFile, 6)
+	mem := NewMemTable()
+	err = parseBody(testFile, 6, mem)
 	if err != nil {
 		t.Errorf("Error parsing file: %v", err)
 	}
@@ -100,7 +101,7 @@ func TestSearch(t *testing.T) {
 	defer testFile.Close()
 
 	for k, v := range pairs {
-		value, err := search(k, testFile)
+		value, err := Search(k, testFile)
 		if err != nil {
 			t.Errorf("Error searching for key: %v", k)
 		}

@@ -6,6 +6,11 @@ import (
 	"os"
 )
 
+const (
+	BloomLength = 29
+	HashFuncNum = 10
+)
+
 type BloomFilter struct {
 	size      uint
 	hashFuncs []func(data []byte) uint
@@ -26,7 +31,7 @@ func NewBloomFilter(size uint, numHashFuncs uint) *BloomFilter {
 	}
 }
 
-func byteToBoolSlice(data []byte) []bool {
+func helperByteToBoolSlice(data []byte) []bool {
 	boolSlice := make([]bool, len(data))
 
 	for i, b := range data {
@@ -39,16 +44,9 @@ func byteToBoolSlice(data []byte) []bool {
 }
 
 func CreateBloomFilter(bitset []byte) *BloomFilter {
-	hashFuncs := make([]func(data []byte) uint, 10)
-	for i := 0; i < 10; i++ {
-		hashFuncs[i] = createHashFunc(uint(i))
-	}
-
-	return &BloomFilter{
-		size:      uint(len(bitset)),
-		hashFuncs: hashFuncs,
-		bitset:    byteToBoolSlice(bitset),
-	}
+	bloom := NewBloomFilter(uint(len(bitset)), HashFuncNum)
+	bloom.bitset = helperByteToBoolSlice(bitset)
+	return bloom
 }
 
 // Add adds an element to the Bloom filter.

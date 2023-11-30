@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -23,6 +22,15 @@ const (
 	StatusBadRequest       = http.StatusBadRequest
 )
 
+var (
+	ErrSpecifyToGet = errors.New("No specified key to get")
+	ErrSpecifyToDel = errors.New("No specified key to del")
+	ErrSpecifyToSet = errors.New("You should specify one key value pair to set")
+	ErrTooManyKeys  = errors.New("Too many keys specified, request cancelled")
+	ErrInvalidKey   = errors.New("Invalid key")
+	ErrInvalidValue = errors.New("Invalid value")
+)
+
 type Server struct {
 	addr string
 	port string
@@ -39,18 +47,24 @@ func writeResponse(response *http.ResponseWriter, status int, message string) {
 }
 
 func validate(queries *url.Values, pattern string) error {
+	var err error
 	switch pattern {
-	case GetPath, DelPath:
-		if _, ok := (*queries)[Key]; !ok {
-			return errors.New("No specified element to " + pattern[1:])
-		}
-		if len((*queries)[Key]) != 1 {
-			return errors.New("Too many keys to " + pattern[1:] + ", request cancelled")
-		}
-		return nil
-	default:
-		return errors.New("Unrecognized pattern")
+	case GetPath:
+		err = ErrSpecifyToGet
+	case DelPath:
+		err = ErrSpecifyToDel
 	}
+	if _, ok := (*queries)[Key]; !ok {
+		return err
+	}
+	if len((*queries)[Key]) != 1 {
+		return ErrTooManyKeys
+	}
+	k := (*queries)[Key][0]
+	if k == "" || !isASCII(k) {
+		return ErrInvalidKey
+	}
+	return nil
 }
 
 func isASCII(s string) bool {
@@ -64,15 +78,15 @@ func isASCII(s string) bool {
 
 func validateJSON(data map[string]string) error {
 	if len(data) != 1 {
-		return errors.New("You should specify one key-value pair to set")
+		return ErrSpecifyToSet
 	}
 	for key, value := range data {
 		if key == "" || !isASCII(key) {
-			return fmt.Errorf("Invalid key: %s", key)
+			return ErrInvalidKey
 		}
 
 		if value == "" || !isASCII(value) {
-			return fmt.Errorf("Invalid value for key %s: %s", key, value)
+			return ErrInvalidValue
 		}
 	}
 
@@ -104,32 +118,26 @@ func (s *Server) handleSet(response http.ResponseWriter, request *http.Request) 
 	writeResponse(&response, StatusOK, "The key-value pair was set successfully")
 }
 
-func (s *Server) handleGet(response http.ResponseWriter, request *http.Request) {
+func helperGetDel(response *http.ResponseWriter, request *http.Request, function func(string) (string, error), format string) {
 	queries := request.URL.Query()
 	if err := validate(&queries, GetPath); err != nil {
-		writeResponse(&response, StatusBadRequest, err.Error())
+		writeResponse(response, StatusBadRequest, err.Error())
 		return
 	}
 	k := queries[Key][0]
-	if v, err := s.lstm.Get(k); err != nil {
-		writeResponse(&response, StatusBadRequest, k+" : "+err.Error())
+	if v, err := function(k); err != nil {
+		writeResponse(response, StatusBadRequest, k+" : "+err.Error())
 	} else {
-		writeResponse(&response, StatusOK, k+" : "+v)
+		writeResponse(response, StatusOK, format+k+" : "+v)
 	}
 }
 
+func (s *Server) handleGet(response http.ResponseWriter, request *http.Request) {
+	helperGetDel(&response, request, s.lstm.Get, "")
+}
+
 func (s *Server) handleDel(response http.ResponseWriter, request *http.Request) {
-	queries := request.URL.Query()
-	if err := validate(&queries, DelPath); err != nil {
-		writeResponse(&response, StatusBadRequest, err.Error())
-		return
-	}
-	k := queries[Key][0]
-	if v, err := s.lstm.Del(k); err != nil {
-		writeResponse(&response, StatusBadRequest, k+" : "+err.Error())
-	} else {
-		writeResponse(&response, StatusOK, "Deleted Successfully : "+k+" : "+v)
-	}
+	helperGetDel(&response, request, s.lstm.Del, "Deleted Successfully : ")
 }
 
 func NewServer() Server {

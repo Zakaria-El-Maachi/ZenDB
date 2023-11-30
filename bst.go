@@ -25,26 +25,8 @@ type TreeNode struct {
 }
 
 // NewTree creates a new Red-Black Tree from a list of pairs.
-func NewTree(list []Pair) *TreeNode {
-	return BuildTree(list, Black)
-}
-
-// BuildTree builds a Red-Black Tree from a list of pairs with a given color.
-func BuildTree(list []Pair, c Color) *TreeNode {
-	s := len(list)
-	if s == 0 {
-		return nil
-	}
-	root := &TreeNode{
-		elem:  list[s/2],
-		color: c,
-		left:  BuildTree(list[:s/2], !c),
-		size:  s,
-	}
-	if s/2+1 < s {
-		root.right = BuildTree(list[s/2+1:], !c)
-	}
-	return root
+func NewTree() *TreeNode {
+	return nil
 }
 
 // Insert inserts a new pair into the Red-Black Tree.
@@ -166,7 +148,7 @@ func (t *TreeNode) Traverse() []Pair {
 
 // Bloom Filter from a pair slice
 func GetBloom(p []Pair) *BloomFilter {
-	bloom := NewBloomFilter(29, 10)
+	bloom := NewBloomFilter(BloomLength, HashFuncNum)
 	for _, element := range p {
 		bloom.Add([]byte(element.key))
 	}
