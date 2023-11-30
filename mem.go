@@ -127,22 +127,3 @@ func writeUint16ToFile(file *os.File, data uint16) error {
 	_, err := file.Write(buffer)
 	return err
 }
-
-// // Helper function to write a string to a file with error handling.
-// func writeBytes(data string) ([]byte, error) {
-// 	return []byte(data), nil
-// }
-
-// // Helper function to write a uint32 to a file with error handling.
-// func uint32ToBytes(data uint32) []byte {
-// 	buffer := make([]byte, 4)
-// 	binary.LittleEndian.PutUint32(buffer, data)
-// 	return buffer
-// }
-
-// // Helper function to write a uint16 to a file with error handling.
-// func uint16ToBytes(data uint16) []byte {
-// 	buffer := make([]byte, 2)
-// 	binary.LittleEndian.PutUint16(buffer, data)
-// 	return buffer
-// }

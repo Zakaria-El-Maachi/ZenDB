@@ -11,14 +11,15 @@ import (
 	"sync"
 )
 
+// Constants defining thresholds and sst files' path.
 const (
 	flushThreshold      = 20
-	cleanThreshold      = 50
-	CompactionThreshold = 2
+	CompactionThreshold = 5
 	path1               = "Zen_SST\\ZenFile"
 	path2               = ".sst"
 )
 
+// Errors for various situations.
 var (
 	ErrFileNotRecognized      = errors.New("File not recognized")
 	ErrFileNotEncodedProperly = errors.New("File not encoded properly")
@@ -29,7 +30,7 @@ var (
 	ErrDeletion               = errors.New("Error While Deleting")
 )
 
-// Lstm represents the main storage manager.
+// Lstm represents the main storage manager, the LSM Tree
 type Lstm struct {
 	mem      *MemTable
 	wal      *Wal
@@ -48,6 +49,7 @@ func (lstm *Lstm) Set(key, value string) error {
 	return lstm.mem.Set(key, value)
 }
 
+// Search retrieves the value associated with a key from the storage.
 func (lstm *Lstm) Search(key string) (string, error) {
 	v, err := lstm.mem.Get(key)
 	if err != nil && errors.Is(err, ErrKeyNotFound) {
@@ -111,6 +113,7 @@ func (lstm *Lstm) memFlush() {
 	}
 }
 
+// Recover recovers the storage manager state from the Write-Ahead Log (WAL).
 func Recover() (*MemTable, error) {
 	log.Println("Recovering...")
 	defer log.Println("Recovering Complete\nReady For Requests")
@@ -154,7 +157,7 @@ func Recover() (*MemTable, error) {
 	return mem, nil
 }
 
-// LstmDB initializes the storage manager.
+// LstmDB initializes the storage LSM Tree.
 func LstmDB() (*Lstm, error) {
 	mem, err := Recover()
 	if err != nil {
@@ -174,21 +177,21 @@ func LstmDB() (*Lstm, error) {
 	return resLstm, nil
 }
 
+// getSstFiles reads and returns the SST file numbers from the "Zen_SST" directory.
 func getSstFiles() []int {
 	directory := "Zen_SST"
 
 	var sstFiles []int
 
-	// Read the directory entries
+	// Read the directory files
 	files, err := os.ReadDir(directory)
 	if err != nil {
 		log.Fatal("Error reading directory Zen_SST:", err)
 	}
 
-	// Define a regular expression to match file names like "ZenFileX.sst"
+	// Define a regular expreession
 	re := regexp.MustCompile(`^ZenFile(\d+)\.sst$`)
 
-	// Iterate through the files in the directory
 	for _, file := range files {
 		match := re.FindStringSubmatch(file.Name())
 		if match != nil {
@@ -206,6 +209,7 @@ func getSstFiles() []int {
 	return sstFiles
 }
 
+// Compact performs compaction of SST files.
 func (lstm *Lstm) Compact() {
 	for {
 		length := len(lstm.sstFiles)

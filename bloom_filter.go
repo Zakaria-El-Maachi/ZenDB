@@ -6,6 +6,7 @@ import (
 	"os"
 )
 
+// Constants defining Bloom filter parameters.
 const (
 	BloomLength = 29
 	HashFuncNum = 10
@@ -31,6 +32,7 @@ func NewBloomFilter(size uint, numHashFuncs uint) *BloomFilter {
 	}
 }
 
+// helperByteToBoolSlice converts a byte slice to a boolean slice.
 func helperByteToBoolSlice(data []byte) []bool {
 	boolSlice := make([]bool, len(data))
 
@@ -43,6 +45,7 @@ func helperByteToBoolSlice(data []byte) []bool {
 	return boolSlice
 }
 
+// CreateBloomFilter creates a Bloom filter from a bitset.
 func CreateBloomFilter(bitset []byte) *BloomFilter {
 	bloom := NewBloomFilter(uint(len(bitset)), HashFuncNum)
 	bloom.bitset = helperByteToBoolSlice(bitset)
@@ -69,6 +72,7 @@ func (bf *BloomFilter) Test(data []byte) bool {
 	return true
 }
 
+// createHashFunc generates a hash function based on a given seed.
 func createHashFunc(seed uint) func(data []byte) uint {
 	return func(data []byte) uint {
 		hasher := fnv.New32a()
@@ -78,6 +82,7 @@ func createHashFunc(seed uint) func(data []byte) uint {
 	}
 }
 
+// WriteToFile writes the Bloom filter bitset to a file.
 func (bf *BloomFilter) WriteToFile(writer *os.File) error {
 	var b byte
 	for _, value := range bf.bitset {

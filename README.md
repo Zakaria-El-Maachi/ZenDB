@@ -37,7 +37,7 @@ At first (Refer to previous commits for details), I tried to implement the log f
 
 ## Future Improvements
 
-* **Ensuring Atomicity:** When Flushing, the creation of the SST File is not guaranteed to be atomic, and can lead to bugs when the application crashes (Never happened to me when testing). However, that is only dependent on the Write method of files (Operating System), I have gone to great lengths to write to a buffer, then flush to the file, so that I am as close as possible from atomicity.
+* **Ensuring Atomicity:** When Flushing, the creation of the SST File is not guaranteed to be atomic, and can lead to bugs when the application crashes (Never happened to me when testing). However, that is only dependent on the Write method of files (Operating System). As such, I am looking for methods to ensure atomicity of writing whole files.
 * **Concurrent Distributed Database:** Implement a concurrent distributed database to handle multiple clients and achieve high availability.
 * **Performance Enhancement:** Explore techniques to enhance the performance of the key-value store, such as utilizing Goroutines for parallel processing and optimizing data structures.
 

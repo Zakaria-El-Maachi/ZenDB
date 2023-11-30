@@ -1,8 +1,26 @@
 Data Compression
 
-Error handling (Very Few but there are some errors here and there that are not handled)
 Better Tests Overall
 
 Compaction should not only be done on the first file, but all files up to the threshold
 
-mem flush function Refactoring
+
+
+// // Helper function to write a string to a file with error handling.
+// func writeBytes(data string) ([]byte, error) {
+// 	return []byte(data), nil
+// }
+
+// // Helper function to write a uint32 to a file with error handling.
+// func uint32ToBytes(data uint32) []byte {
+// 	buffer := make([]byte, 4)
+// 	binary.LittleEndian.PutUint32(buffer, data)
+// 	return buffer
+// }
+
+// // Helper function to write a uint16 to a file with error handling.
+// func uint16ToBytes(data uint16) []byte {
+// 	buffer := make([]byte, 2)
+// 	binary.LittleEndian.PutUint16(buffer, data)
+// 	return buffer
+// }

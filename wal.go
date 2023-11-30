@@ -35,12 +35,14 @@ func (w *Wal) Write(op []byte) error {
 	return nil
 }
 
+// RecordSet records a 'set' operation in the WAL.
 func (w *Wal) RecordSet(key, value string) error {
 	op := append([]byte("s"), encodeString(key)...)
 	op = append(op, encodeString(value)...)
 	return w.Write(op)
 }
 
+// RecordDel records a 'delete' operation in the WAL.
 func (w *Wal) RecordDel(key string) error {
 	op := append([]byte("d"), encodeString(key)...)
 	return w.Write(op)
@@ -48,10 +50,12 @@ func (w *Wal) RecordDel(key string) error {
 
 // Clean removes watermarked entries from the WAL while updating the watermark, in an atomic way
 func (w *Wal) Clean() error {
+	// Close the current file.
 	if err := w.file.Close(); err != nil {
 		return err
 	}
 
+	// Reopen the file in read-write mode and truncate it to clear its content.
 	var err error
 	w.file, err = os.OpenFile("log.wal", os.O_RDWR, 0666)
 	if err != nil {
@@ -61,6 +65,8 @@ func (w *Wal) Clean() error {
 	if err != nil {
 		return err
 	}
+
+	// Close and reopen the file for appending.
 	if err := w.file.Close(); err != nil {
 		return err
 	}
